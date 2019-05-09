@@ -168,7 +168,7 @@ def poll_queue():
                         bucket_job_id = '{}/'.format(job_id)
                         print("Bucket Job ID: " + bucket_job_id)
                         s3_location = 's3://' + bucket_job_id
-                        s3_client.meta.client.upload_file(path, root_bucket_name, bucket_job_id + job_id + '.csv')
+                        s3_client.meta.client.upload_file(path, root_bucket_name, username + '/' + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
                         updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
