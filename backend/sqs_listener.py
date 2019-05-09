@@ -75,9 +75,13 @@ while True:
                 logger.info(query_json)
 
                 # extract the job id from the message
+                username = ''
+                job_id = ''
                 for item in query_json:
                     if 'job_id' in item:
                         job_id = item['job_id']
+                    if 'username' in item:
+                        username = item['username']
 
                 # Updating the job status in the job database as running
 
@@ -103,8 +107,6 @@ while True:
                         value = item['value']
                     if 'operand' in item:
                         operand = item['operand']
-                    if 's3_location' in item:
-                        print("S3 Location: " + item['s3_location'])
                     if 'field' in item:
                         field = item['field']
                         if field == 'year':
@@ -152,7 +154,8 @@ while True:
 
                 try:
                     output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                    with open('/tmp/resultsfile', 'w') as f:
+                    path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
+                    with open(path, 'w') as f:
                         wos_cursor.copy_expert(output_query, f)
 
                     s3_client = boto3.resource('s3',
@@ -163,7 +166,7 @@ while True:
                     bucket_job_id = '{}/'.format(job_id)
                     print("Bucket Job ID: " + bucket_job_id)
                     s3_location = 's3://' + bucket_job_id
-                    s3_client.meta.client.upload_file('/tmp/resultsfile', root_bucket_name, bucket_job_id + 'result.csv')
+                    s3_client.meta.client.upload_file(path, root_bucket_name, bucket_job_id + job_id + '.csv')
                 except:
                     print("Job ID: " + job_id)
                     updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"

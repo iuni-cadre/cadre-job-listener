@@ -179,3 +179,12 @@ def get_cadre_db_pwd():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_cadre_efs_root():
+    try:
+        config = get_cadre_config()
+        efs_root = config['EFS']['efs-root']
+        return efs_root
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
