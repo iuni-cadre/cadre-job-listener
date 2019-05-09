@@ -164,11 +164,12 @@ def poll_queue():
                                                    aws_access_key_id=util.config_reader.get_aws_access_key(),
                                                    aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
                                                    region_name=util.config_reader.get_aws_region())
-                        root_bucket_name = "cadre-query-result"
-                        bucket_job_id = '{}/'.format(job_id)
-                        print("Bucket Job ID: " + bucket_job_id)
-                        s3_location = 's3://' + bucket_job_id
-                        s3_client.meta.client.upload_file(path, root_bucket_name, username + '/' + job_id + '.csv')
+                        root_bucket_name = 'cadre-query-result'
+                        bucket_location = username + '/'
+                        print("Bucket Job ID: " + bucket_location)
+                        print(root_bucket_name)
+                        s3_client.meta.client.upload_file(path, root_bucket_name,
+                                                          bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
                         updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
