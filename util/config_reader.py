@@ -67,3 +67,115 @@ def get_aws_queue_url():
         traceback.print_tb(e.__traceback__)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
+
+
+def get_wos_db_hostname():
+    try:
+        config = get_cadre_config()
+        db_host_name = config['WOS_DATABASE_INFO']['database-host']
+        return db_host_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_wos_db_port():
+    try:
+        config = get_cadre_config()
+        db_port = config['WOS_DATABASE_INFO']['database-port']
+        return db_port
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_wos_db_name():
+    try:
+        config = get_cadre_config()
+        db_name = config['WOS_DATABASE_INFO']['database-name']
+        return db_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_wos_db_username():
+    try:
+        config = get_cadre_config()
+        db_username = config['WOS_DATABASE_INFO']['database-username']
+        return db_username
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_wos_db_pwd():
+    try:
+        config = get_cadre_config()
+        db_pwd = config['WOS_DATABASE_INFO']['database-password']
+        return db_pwd
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_db_hostname():
+    try:
+        config = get_cadre_config()
+        db_host_name = config['CADRE_META_DATABASE_INFO']['database-host']
+        return db_host_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_db_port():
+    try:
+        config = get_cadre_config()
+        db_port = config['CADRE_META_DATABASE_INFO']['database-port']
+        return db_port
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_db_name():
+    try:
+        config = get_cadre_config()
+        db_name = config['CADRE_META_DATABASE_INFO']['database-name']
+        return db_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_db_username():
+    try:
+        config = get_cadre_config()
+        db_username = config['CADRE_META_DATABASE_INFO']['database-username']
+        return db_username
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_db_pwd():
+    try:
+        config = get_cadre_config()
+        db_pwd = config['CADRE_META_DATABASE_INFO']['database-password']
+        return db_pwd
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
