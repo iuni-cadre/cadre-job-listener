@@ -79,11 +79,15 @@ def poll_queue():
                     # extract the job id from the message
                     username = ''
                     job_id = ''
+                    output_filter_string = '*'
                     for item in query_json:
                         if 'job_id' in item:
                             job_id = item['job_id']
                         if 'username' in item:
                             username = item['username']
+                        if 'output' in item:
+                            output_filters = item['output_filter']
+                            output_filter_string = ",".join(output_filters)
 
                     # Updating the job status in the job database as running
 
@@ -99,11 +103,7 @@ def poll_queue():
                     # Generating the Query that needs to run on the RDS
 
                     value_array = []
-                    interface_query = 'SELECT wos_id, year, number, issue, pages, authors_full_name, authors_id_orcid, ' \
-                                      'authors_id_dais, authors_id_research, authors_prefix, authors_first_name, authors_middle_name, ' \
-                                      'authors_last_name, authors_suffix, authors_initials, authors_display_name, authors_wos_name, ' \
-                                      'authors_id_lang, authors_email, "references", issn, doi, title, journal_name, journal_abbrev, ' \
-                                      'journal_iso, abstract_paragraphs FROM interface_table WHERE '
+                    interface_query = 'SELECT ' + output_filter_string + ' FROM interface_table WHERE '
                     for item in query_json:
                         if 'value' in item:
                             value = item['value']
