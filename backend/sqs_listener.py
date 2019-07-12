@@ -8,6 +8,8 @@ from os import path
 import boto3
 import psycopg2 as psycopg2
 
+from neo4j import GraphDatabase
+
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
 util = cadre + '/util'
@@ -15,7 +17,7 @@ conf = cadre + '/conf'
 sys.path.append(cadre)
 
 import util.config_reader
-from util.db_util import wos_connection_pool, cadre_meta_connection_pool
+from util.db_util import wos_connection_pool, cadre_meta_connection_pool, driver
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
 logfile_path = cadre + "/cadre_job_listener.log"
@@ -42,6 +44,110 @@ sqs_client = boto3.client('sqs',
                     region_name=util.config_reader.get_aws_region())
 
 queue_url = util.config_reader.get_aws_queue_url()
+
+
+def generate_wos_query(output_filter_string, query_json):
+    interface_query = 'SELECT ' + output_filter_string + ' FROM wos_core.wos_interface_table WHERE '
+    for item in query_json:
+        if 'value' in item:
+            value = item['value']
+        if 'operand' in item:
+            operand = item['operand']
+        if 'field' in item:
+            field = item['field']
+            if field == 'year':
+                if value is not None:
+                    value = value.strip()
+                    if len(value) == 4 and value.isdigit():
+                        value = "'{}'".format(value)
+                        print("Year: " + value)
+                        interface_query += ' year={} '.format(value) + operand
+                        # years.append(value)
+                        # year_operands.append(operand)
+            elif field == 'journalsName':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    print("Journals Name: " + value)
+                    interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    # journals.append(value)
+                    # journal_operands.append(operand)
+            elif field == 'authorsFullName':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    print("Authors Full Name: " + value)
+                    interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
+                    # authors.append(value)
+            elif field == 'title':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    print("Title: " + value)
+                    interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    # authors.append(value)
+
+    interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+    print("Query: " + interface_query)
+    return interface_query
+
+
+def generate_mag_query(output_filter_string, query_json):
+    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.mag_interface_table WHERE '
+    for item in query_json:
+        if 'value' in item:
+            value = item['value']
+        if 'operand' in item:
+            operand = item['operand']
+        if 'field' in item:
+            field = item['field']
+            if field == 'year':
+                if value is not None:
+                    value = value.strip()
+                    if len(value) == 4 and value.isdigit():
+                        value = "'{}'".format(value)
+                        print("Year: " + value)
+                        interface_query += ' year={} '.format(value) + operand
+                        # years.append(value)
+                        # year_operands.append(operand)
+            elif field == 'journalsName':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    print("Journals Name: " + value)
+                    interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    # journals.append(value)
+                    # journal_operands.append(operand)
+            elif field == 'authorsFullName':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    print("Authors Full Name: " + value)
+                    interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
+                    # authors.append(value)
+            elif field == 'title':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    print("Title: " + value)
+                    interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    # authors.append(value)
+
+    interface_query = interface_query + 'LIMIT' + ' ' + '9999'
+    print("Query: " + interface_query)
+    return interface_query
 
 
 def poll_queue():
@@ -80,7 +186,13 @@ def poll_queue():
                     username = ''
                     job_id = ''
                     output_filter_string = '*'
+                    dataset = 'MAG'
+                    query_type = 'OTHER'
                     for item in query_json:
+                        if 'dataset' in item:
+                            dataset = item['dataset']
+                        if 'query_type' in item:
+                            query_type = item['query_type']
                         if 'job_id' in item:
                             job_id = item['job_id']
                         if 'username' in item:
@@ -102,63 +214,29 @@ def poll_queue():
 
                     # Generating the Query that needs to run on the RDS
 
-                    value_array = []
-                    interface_query = 'SELECT ' + output_filter_string + ' FROM interface_table WHERE '
-                    for item in query_json:
-                        if 'value' in item:
-                            value = item['value']
-                        if 'operand' in item:
-                            operand = item['operand']
-                        if 'field' in item:
-                            field = item['field']
-                            if field == 'year':
-                                if value is not None:
-                                    value = value.strip()
-                                    if len(value) == 4 and value.isdigit():
-                                        value = "'{}'".format(value)
-                                        print("Year: " + value)
-                                        interface_query += ' year={} '.format(value) + operand
-                                        # years.append(value)
-                                        # year_operands.append(operand)
-                            elif field == 'journalsName':
-                                if value is not None:
-                                    value = value.strip()
-                                    value = value.replace(' ', '%')
-                                    value = '%' + value + '%'
-                                    value = "'{}'".format(value)
-                                    print("Journals Name: " + value)
-                                    interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
-                                    # journals.append(value)
-                                    # journal_operands.append(operand)
-                            elif field == 'authorsFullName':
-                                if value is not None:
-                                    value = value.strip()
-                                    value = value.replace(' ', '%')
-                                    value = '%' + value + '%'
-                                    value = "'{}'".format(value)
-                                    print("Authors Full Name: " + value)
-                                    interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
-                                    # authors.append(value)
-                            elif field == 'title':
-                                if value is not None:
-                                    value = value.strip()
-                                    value = value.replace(' ', '%')
-                                    value = '%' + value + '%'
-                                    value = "'{}'".format(value)
-                                    print("Title: " + value)
-                                    interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
-                                    # authors.append(value)
-
-                    interface_query = interface_query + 'LIMIT' + ' ' + '9999'
-                    print("Query: " + interface_query)
+                    if dataset == 'WOS':
+                        if query_type == 'CITATION':
+                            output_filter_string = 'paper_id'
+                            interface_query = generate_wos_query(output_filter_string, query_json)
+                        else:
+                            interface_query = generate_wos_query(output_filter_string, query_json)
+                    else:
+                        if query_type == 'CITATION':
+                            output_filter_string = 'paper_id'
+                            interface_query = generate_mag_query(output_filter_string, query_json)
+                        else:
+                            interface_query = generate_mag_query(output_filter_string, query_json)
 
                     print("Job ID: " + job_id)
 
                     try:
-                        output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                        path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
-                        with open(path, 'w') as f:
-                            wos_cursor.copy_expert(output_query, f)
+                        with driver.session() as session:
+                            result = session.run("CALL apoc.load.jdbc('postgresql_url', '" + interface_query + "') YIELD row MATCH (n:paper)<-[*1]-(m:paper) WHERE n.paper_id = row.paper_id RETURN n, m")
+                            logger.info(result)
+                            output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
+                            path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
+                            with open(path, 'w') as f:
+                                wos_cursor.copy_expert(output_query, f)
 
                         s3_client = boto3.resource('s3',
                                                    aws_access_key_id=util.config_reader.get_aws_access_key(),

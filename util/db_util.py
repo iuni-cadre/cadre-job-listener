@@ -3,6 +3,7 @@ import os
 import sys
 
 from psycopg2 import pool
+from neo4j import GraphDatabase
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 parent = os.path.dirname(abspath)
@@ -36,3 +37,6 @@ cadre_meta_connection_pool = pool.SimpleConnectionPool(1,
 
 if cadre_meta_connection_pool:
     logger.info("Connection pool for cadre meta database created successfully")
+
+
+driver = GraphDatabase.driver(util.config_reader.get_mag_graph_db_url(), auth=(util.config_reader.get_mag_graph_db_username(), util.config_reader.get_mag_graph_db_pwd()))

@@ -124,6 +124,39 @@ def get_wos_db_pwd():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_mag_graph_db_url():
+    try:
+        config = get_cadre_config()
+        db_url = config['MAG_GRAPH_DB_INFO']['database-url']
+        return db_url
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_mag_graph_db_username():
+    try:
+        config = get_cadre_config()
+        db_username = config['MAG_GRAPH_DB_INFO']['database-username']
+        return db_username
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_mag_graph_db_pwd():
+    try:
+        config = get_cadre_config()
+        db_pwd = config['MAG_GRAPH_DB_INFO']['database-password']
+        return db_pwd
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
 def get_cadre_db_hostname():
     try:
         config = get_cadre_config()
