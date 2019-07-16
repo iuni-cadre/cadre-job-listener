@@ -17,7 +17,7 @@ conf = cadre + '/conf'
 sys.path.append(cadre)
 
 import util.config_reader
-from util.db_util import wos_connection_pool, cadre_meta_connection_pool, driver
+from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
 logfile_path = cadre + "/cadre_job_listener.log"
@@ -169,6 +169,8 @@ def poll_queue():
         if 'Messages' in response:
             wos_connection = wos_connection_pool.getconn()
             wos_cursor = wos_connection.cursor()
+            mag_connection = mag_connection_pool.getconn()
+            mag_cursor = mag_connection.cursor()
             meta_connection = cadre_meta_connection_pool.getconn()
             meta_db_cursor = meta_connection.cursor()
             try:
@@ -177,9 +179,7 @@ def poll_queue():
                     message_body = message['Body']
                     logger.info(message_body)
                     logger.info("Received message id " + message['MessageId'])
-
                     query_json = json.loads(message_body)
-
                     logger.info(query_json)
 
                     # extract the job id from the message
@@ -202,52 +202,50 @@ def poll_queue():
                             output_filter_string = ",".join(output_filters)
 
                     # Updating the job status in the job database as running
-
-                    # Use getconn() method to Get Connection from connection pool from the job database
-
                     print("Job ID: " + job_id)
                     updateStatement = "UPDATE user_job SET job_status = 'RUNNING', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     print(meta_connection.get_dsn_parameters())
                     meta_connection.commit()
+                    s3_client = boto3.resource('s3',
+                                               aws_access_key_id=util.config_reader.get_aws_access_key(),
+                                               aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
+                                               region_name=util.config_reader.get_aws_region())
+                    root_bucket_name = 'cadre-query-result'
+                    bucket_location = username + '/'
+                    print("Bucket Job ID: " + bucket_location)
+                    print(root_bucket_name)
 
                     # Generating the Query that needs to run on the RDS
-
-                    if dataset == 'WOS':
-                        if query_type == 'CITATION':
-                            output_filter_string = 'paper_id'
-                            interface_query = generate_wos_query(output_filter_string, query_json)
-                        else:
-                            interface_query = generate_wos_query(output_filter_string, query_json)
-                    else:
-                        if query_type == 'CITATION':
-                            output_filter_string = 'paper_id'
-                            interface_query = generate_mag_query(output_filter_string, query_json)
-                        else:
-                            interface_query = generate_mag_query(output_filter_string, query_json)
-
-                    print("Job ID: " + job_id)
-
                     try:
-                        with driver.session() as session:
-                            result = session.run("CALL apoc.load.jdbc('postgresql_url', '" + interface_query + "') YIELD row MATCH (n:paper)<-[*1]-(m:paper) WHERE n.paper_id = row.paper_id RETURN n, m")
-                            logger.info(result)
-                            output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                            path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
-                            with open(path, 'w') as f:
-                                wos_cursor.copy_expert(output_query, f)
-
-                        s3_client = boto3.resource('s3',
-                                                   aws_access_key_id=util.config_reader.get_aws_access_key(),
-                                                   aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
-                                                   region_name=util.config_reader.get_aws_region())
-                        root_bucket_name = 'cadre-query-result'
-                        bucket_location = username + '/'
-                        print("Bucket Job ID: " + bucket_location)
-                        print(root_bucket_name)
-                        s3_client.meta.client.upload_file(path, root_bucket_name,
-                                                          bucket_location + job_id + '.csv')
+                        if dataset == 'WOS':
+                            if query_type == 'CITATION':
+                                output_filter_string = 'paper_id'
+                                interface_query = generate_wos_query(output_filter_string, query_json)
+                            else:
+                                interface_query = generate_wos_query(output_filter_string, query_json)
+                                output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
+                                path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
+                                with open(path, 'w') as f:
+                                    wos_cursor.copy_expert(output_query, f)
+                                s3_client.meta.client.upload_file(path, root_bucket_name,
+                                                                  bucket_location + job_id + '.csv')
+                        else:
+                            if query_type == 'CITATION':
+                                output_filter_string = 'paper_id'
+                                interface_query = generate_mag_query(output_filter_string, query_json)
+                                with mag_driver.session() as session:
+                                    result = session.run("CALL apoc.load.jdbc('postgresql_url', '" + interface_query + "') YIELD row MATCH (n:paper)<-[*1]-(m:paper) WHERE n.paper_id = row.paper_id RETURN n, m")
+                                    logger.info(result)
+                            else:
+                                interface_query = generate_mag_query(output_filter_string, query_json)
+                                output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
+                                path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
+                                with open(path, 'w') as f:
+                                    mag_cursor.copy_expert(output_query, f)
+                                s3_client.meta.client.upload_file(path, root_bucket_name,
+                                                                  bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
                         updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
@@ -273,8 +271,10 @@ def poll_queue():
             finally:
                 # Closing database connection.
                 wos_cursor.close()
+                mag_cursor.close()
                 meta_db_cursor.close()
                 # Use this method to release the connection object and send back ti connection pool
                 wos_connection_pool.putconn(wos_connection)
+                mag_connection_pool.putconn(mag_connection)
                 cadre_meta_connection_pool.putconn(meta_connection)
                 print("PostgreSQL connection pool is closed")

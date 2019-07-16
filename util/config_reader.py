@@ -124,6 +124,61 @@ def get_wos_db_pwd():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_mag_db_hostname():
+    try:
+        config = get_cadre_config()
+        db_host_name = config['MAG_DATABASE_INFO']['database-host']
+        return db_host_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_mag_db_port():
+    try:
+        config = get_cadre_config()
+        db_port = config['MAG_DATABASE_INFO']['database-port']
+        return db_port
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_mag_db_name():
+    try:
+        config = get_cadre_config()
+        db_name = config['MAG_DATABASE_INFO']['database-name']
+        return db_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_mag_db_username():
+    try:
+        config = get_cadre_config()
+        db_username = config['MAG_DATABASE_INFO']['database-username']
+        return db_username
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_mag_db_pwd():
+    try:
+        config = get_cadre_config()
+        db_pwd = config['MAG_DATABASE_INFO']['database-password']
+        return db_pwd
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
 def get_mag_graph_db_url():
     try:
         config = get_cadre_config()

@@ -26,6 +26,17 @@ wos_connection_pool = pool.SimpleConnectionPool(1,
 if wos_connection_pool:
     logger.info("Connection pool for WOS database created successfully")
 
+mag_connection_pool = pool.SimpleConnectionPool(1,
+                                                20,
+                                                host=util.config_reader.get_mag_db_hostname(),
+                                                database=util.config_reader.get_mag_db_name(),
+                                                user=util.config_reader.get_mag_db_username(),
+                                                password=util.config_reader.get_mag_db_pwd(),
+                                                port=util.config_reader.get_mag_db_port())
+
+if mag_connection_pool:
+    logger.info("Connection pool for MAG database created successfully")
+
 
 cadre_meta_connection_pool = pool.SimpleConnectionPool(1,
                                                 20,
@@ -39,4 +50,4 @@ if cadre_meta_connection_pool:
     logger.info("Connection pool for cadre meta database created successfully")
 
 
-driver = GraphDatabase.driver(util.config_reader.get_mag_graph_db_url(), auth=(util.config_reader.get_mag_graph_db_username(), util.config_reader.get_mag_graph_db_pwd()))
+mag_driver = GraphDatabase.driver(util.config_reader.get_mag_graph_db_url(), auth=(util.config_reader.get_mag_graph_db_username(), util.config_reader.get_mag_graph_db_pwd()))
