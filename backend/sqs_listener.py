@@ -1,3 +1,4 @@
+import csv
 import json
 import logging.config
 import os
@@ -51,7 +52,7 @@ def generate_wos_query(output_filter_string, query_json):
     for item in query_json:
         if 'value' in item:
             value = item['value']
-        if 'operand' in item:
+        if 'operator' in item:
             operand = item['operand']
         if 'field' in item:
             field = item['field']
@@ -150,6 +151,17 @@ def generate_mag_query(output_filter_string, query_json):
     return interface_query
 
 
+def convert_csv_to_json(csv_path, json_path, output_filter_string):
+    csvfile = open(csv_path, 'r')
+    jsonfile = open(json_path, 'w')
+
+    fieldnames = tuple(output_filter_string.split(','))
+    reader = csv.DictReader(csvfile, fieldnames)
+    for row in reader:
+        json.dump(row, jsonfile)
+        jsonfile.write('\n')
+
+
 def poll_queue():
     while True:
         # Receive message from SQS queue
@@ -219,6 +231,8 @@ def poll_queue():
 
                     # Generating the Query that needs to run on the RDS
                     try:
+                        json_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.json'
+                        csv_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
                         if dataset == 'WOS':
                             if query_type == 'CITATION':
                                 output_filter_string = 'paper_id'
@@ -226,26 +240,28 @@ def poll_queue():
                             else:
                                 interface_query = generate_wos_query(output_filter_string, query_json)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                                path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
-                                with open(path, 'w') as f:
+                                with open(json_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
-                                s3_client.meta.client.upload_file(path, root_bucket_name,
-                                                                  bucket_location + job_id + '.csv')
+                                convert_csv_to_json(csv_path, json_path, output_filter_string)
+
                         else:
                             if query_type == 'CITATION':
                                 output_filter_string = 'paper_id'
                                 interface_query = generate_mag_query(output_filter_string, query_json)
                                 with mag_driver.session() as session:
-                                    result = session.run("CALL apoc.load.jdbc('postgresql_url', '" + interface_query + "') YIELD row MATCH (n:paper)<-[*1]-(m:paper) WHERE n.paper_id = row.paper_id RETURN n, m")
+                                    neo4j_query = "CALL apoc.export.json.query(\"CALL apoc.load.jdbc('postgresql_url'," \
+                                                  " ' " + interface_query + "') YIELD row MATCH (n:paper)<-[*2]-(m:paper)" \
+                                                  " WHERE n.paper_id = row.paper_id RETURN n, m\", '" + json_path +  "')"
+                                    result = session.run(neo4j_query)
                                     logger.info(result)
                             else:
                                 interface_query = generate_mag_query(output_filter_string, query_json)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                                path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
-                                with open(path, 'w') as f:
+                                with open(json_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
-                                s3_client.meta.client.upload_file(path, root_bucket_name,
-                                                                  bucket_location + job_id + '.csv')
+                                convert_csv_to_json(csv_path, json_path, output_filter_string)
+                        s3_client.meta.client.upload_file(json_path, root_bucket_name,
+                                                          bucket_location + job_id + '.json')
                     except:
                         print("Job ID: " + job_id)
                         updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
