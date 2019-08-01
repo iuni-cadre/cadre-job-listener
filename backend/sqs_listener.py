@@ -239,16 +239,18 @@ def poll_queue():
                                                aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
                                                region_name=util.config_reader.get_aws_region())
                     root_bucket_name = 'cadre-query-result'
-                    bucket_location = username + '/'
-                    print("Bucket Job ID: " + bucket_location)
+                    bucket_location = username + '/query-results'
+                    print("Bucket : " + bucket_location)
                     print(root_bucket_name)
 
                     # Generating the Query that needs to run on the RDS
                     try:
-                        json_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.json'
-                        csv_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
+                        efs_root = util.config_reader.get_cadre_efs_root()
+                        user_query_result_dir = efs_root + '/' + username + '/query-results'
+                        if not os.path.exists(user_query_result_dir):
+                            os.makedirs(user_query_result_dir)
+                        csv_path = user_query_result_dir + '/' + job_id + '.csv'
                         logger.info(csv_path)
-                        logger.info(json_path)
                         logger.info(dataset)
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
