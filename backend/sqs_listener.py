@@ -100,6 +100,8 @@ def generate_wos_query(output_filter_string, query_json):
 
 
 def generate_mag_query(output_filter_string, query_json):
+    logger.info(output_filter_string)
+    logger.info(query_json)
     interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.mag_interface_table WHERE '
     for item in query_json:
         if 'value' in item:
@@ -248,6 +250,7 @@ def poll_queue():
                         logger.info(csv_path)
                         logger.info(json_path)
                         if dataset == 'wos':
+                            logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'citation':
                                 output_filter_string = 'paper_id'
                                 interface_query = generate_wos_query(output_filter_string, filters)
@@ -260,6 +263,7 @@ def poll_queue():
                                 # convert_csv_to_json(csv_path, json_path, output_filter_string)
 
                         else:
+                            logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citation':
                                 output_filter_string = 'paper_id'
                                 interface_query = generate_mag_query(output_filter_string, filters)
