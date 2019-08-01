@@ -52,7 +52,7 @@ def generate_wos_query(output_filter_string, query_json):
     for item in query_json:
         if 'value' in item:
             value = item['value']
-        if 'operator' in item:
+        if 'operation' in item:
             operand = item['operation']
         if 'field' in item:
             field = item['field']
@@ -106,7 +106,7 @@ def generate_mag_query(output_filter_string, query_json):
     for item in query_json:
         if 'value' in item:
             value = item['value']
-        if 'operand' in item:
+        if 'operation' in item:
             operand = item['operation']
         if 'field' in item:
             field = item['field']
@@ -249,6 +249,7 @@ def poll_queue():
                         csv_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
                         logger.info(csv_path)
                         logger.info(json_path)
+                        logger.info(dataset)
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'citation':
@@ -260,8 +261,6 @@ def poll_queue():
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
-                                # convert_csv_to_json(csv_path, json_path, output_filter_string)
-
                         else:
                             logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citation':
