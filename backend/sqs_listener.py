@@ -48,7 +48,7 @@ queue_url = util.config_reader.get_aws_queue_url()
 
 
 def generate_wos_query(output_filter_string, query_json):
-    interface_query = 'SELECT ' + output_filter_string + ' FROM wos_core.wos_interface_table WHERE '
+    interface_query = 'SELECT ' + output_filter_string + ' FROM wos_core.interface_table WHERE '
     for item in query_json:
         if 'value' in item:
             value = item['value']
