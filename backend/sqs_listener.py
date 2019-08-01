@@ -207,26 +207,13 @@ def poll_queue():
                     query_json = json.loads(message_body)
                     logger.info(query_json)
 
-                    # extract the job id from the message
-                    username = ''
-                    job_id = ''
-                    output_filter_string = '*'
-                    dataset = 'mag'
                     network_query_type = 'other'
                     degree = 0
-                    output_fields = []
-                    filters = []
-                    for item in query_json:
-                        if 'dataset' in item:
-                            dataset = item['dataset']
-                        if 'filters' in item:
-                            filters = item['filters']
-                        if 'job_id' in item:
-                            job_id = item['job_id']
-                        if 'username' in item:
-                            username = item['username']
-                        if 'output' in item:
-                            output_fields = item['output']
+                    dataset = query_json['dataset']
+                    filters = query_json['filters']
+                    job_id = query_json['job_id']
+                    username = query_json['username']
+                    output_fields = query_json['output']
 
                     for output_filed in output_fields:
                         type = output_filed['type']
