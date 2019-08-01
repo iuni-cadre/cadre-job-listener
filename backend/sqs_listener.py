@@ -53,7 +53,7 @@ def generate_wos_query(output_filter_string, query_json):
         if 'value' in item:
             value = item['value']
         if 'operator' in item:
-            operand = item['operand']
+            operand = item['operation']
         if 'field' in item:
             field = item['field']
             if field == 'year':
@@ -61,27 +61,27 @@ def generate_wos_query(output_filter_string, query_json):
                     value = value.strip()
                     if len(value) == 4 and value.isdigit():
                         value = "'{}'".format(value)
-                        print("Year: " + value)
+                        logger.info("Year: " + value)
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
                         # year_operands.append(operand)
-            elif field == 'journalsName':
+            elif field == 'journals_name':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
                     value = "'{}'".format(value)
-                    print("Journals Name: " + value)
+                    logger.info("Journals Name: " + value)
                     interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # journals.append(value)
                     # journal_operands.append(operand)
-            elif field == 'authorsFullName':
+            elif field == 'authors_full_name':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
                     value = "'{}'".format(value)
-                    print("Authors Full Name: " + value)
+                    logger.info("authors_full_name: " + value)
                     interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
                     # authors.append(value)
             elif field == 'title':
@@ -90,7 +90,7 @@ def generate_wos_query(output_filter_string, query_json):
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
                     value = "'{}'".format(value)
-                    print("Title: " + value)
+                    logger.info("Title: " + value)
                     interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
 
@@ -105,7 +105,7 @@ def generate_mag_query(output_filter_string, query_json):
         if 'value' in item:
             value = item['value']
         if 'operand' in item:
-            operand = item['operand']
+            operand = item['operation']
         if 'field' in item:
             field = item['field']
             if field == 'year':
@@ -117,36 +117,48 @@ def generate_mag_query(output_filter_string, query_json):
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
                         # year_operands.append(operand)
-            elif field == 'journalsName':
+            elif field == 'journal_display_name':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
                     value = "'{}'".format(value)
                     print("Journals Name: " + value)
-                    interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    interface_query += ' journal_display_name iLIKE {} '.format(value) + operand
                     # journals.append(value)
                     # journal_operands.append(operand)
-            elif field == 'authorsFullName':
+            elif field == 'book_title':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
-                    value = '%' + value + '%'
-                    value = "'{}'".format(value)
-                    print("Authors Full Name: " + value)
-                    interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
-                    # authors.append(value)
-            elif field == 'title':
+                    value = '%' + value.upper() + '%'
+                    logger.info('Book Title: ' + value)
+                    interface_query += ' book_title iLIKE {} '.format(value) + operand
+            elif field == 'doi':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value.upper() + '%'
+                    logger.info('DOI: ' + value)
+                    interface_query += ' doi iLIKE {} '.format(value) + operand
+            elif field == 'conference_display_name':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value.upper() + '%'
+                    logger.info('conferenceDisplayName: ' + value)
+                    interface_query += ' conference_display_name iLIKE {} '.format(value) + operand
+            elif field == 'paper_title':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
                     value = "'{}'".format(value)
                     print("Title: " + value)
-                    interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
 
-    interface_query = interface_query + 'LIMIT' + ' ' + '9999'
+    interface_query = interface_query + 'LIMIT' + ' ' + '10000'
     print("Query: " + interface_query)
     return interface_query
 
@@ -185,6 +197,7 @@ def poll_queue():
             mag_cursor = mag_connection.cursor()
             meta_connection = cadre_meta_connection_pool.getconn()
             meta_db_cursor = meta_connection.cursor()
+            output_filters_single = []
             try:
                 for message in response['Messages']:
                     receipt_handle = message['ReceiptHandle']
@@ -198,21 +211,33 @@ def poll_queue():
                     username = ''
                     job_id = ''
                     output_filter_string = '*'
-                    dataset = 'MAG'
-                    query_type = 'OTHER'
+                    dataset = 'mag'
+                    network_query_type = 'other'
+                    degree = 0
+                    output_fields = []
+                    filters = []
                     for item in query_json:
                         if 'dataset' in item:
                             dataset = item['dataset']
-                        if 'query_type' in item:
-                            query_type = item['query_type']
+                        if 'filters' in item:
+                            filters = item['filters']
                         if 'job_id' in item:
                             job_id = item['job_id']
                         if 'username' in item:
                             username = item['username']
                         if 'output' in item:
-                            output_filters = item['output_filter']
-                            output_filter_string = ",".join(output_filters)
+                            output_fields = item['output']
 
+                    for output_filed in output_fields:
+                        type = output_filed['type']
+                        if type == 'single':
+                            field = output_filed['field']
+                            output_filters_single.append(field)
+                        else:
+                            network_query_type = output_filed['field']
+                            degree = int(output_filed['degree'])
+                            output_filters_single.append('paper_id')
+                    output_filter_string = ",".join(output_filters_single)
                     # Updating the job status in the job database as running
                     print("Job ID: " + job_id)
                     updateStatement = "UPDATE user_job SET job_status = 'RUNNING', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
@@ -233,21 +258,21 @@ def poll_queue():
                     try:
                         json_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.json'
                         csv_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
-                        if dataset == 'WOS':
-                            if query_type == 'CITATION':
+                        if dataset == 'wos':
+                            if network_query_type == 'citation':
                                 output_filter_string = 'paper_id'
-                                interface_query = generate_wos_query(output_filter_string, query_json)
+                                interface_query = generate_wos_query(output_filter_string, filters)
                             else:
-                                interface_query = generate_wos_query(output_filter_string, query_json)
+                                interface_query = generate_wos_query(output_filter_string, filters)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(json_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
                                 convert_csv_to_json(csv_path, json_path, output_filter_string)
 
                         else:
-                            if query_type == 'CITATION':
+                            if network_query_type == 'citation':
                                 output_filter_string = 'paper_id'
-                                interface_query = generate_mag_query(output_filter_string, query_json)
+                                interface_query = generate_mag_query(output_filter_string, filters)
                                 with mag_driver.session() as session:
                                     neo4j_query = "CALL apoc.export.json.query(\"CALL apoc.load.jdbc('postgresql_url'," \
                                                   " ' " + interface_query + "') YIELD row MATCH (n:paper)<-[*2]-(m:paper)" \
@@ -255,7 +280,7 @@ def poll_queue():
                                     result = session.run(neo4j_query)
                                     logger.info(result)
                             else:
-                                interface_query = generate_mag_query(output_filter_string, query_json)
+                                interface_query = generate_mag_query(output_filter_string, filters)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(json_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
