@@ -245,16 +245,19 @@ def poll_queue():
                     try:
                         json_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.json'
                         csv_path = util.config_reader.get_cadre_efs_root() + '/' + username + '/' + job_id + '.csv'
+                        logger.info(csv_path)
+                        logger.info(json_path)
                         if dataset == 'wos':
                             if network_query_type == 'citation':
                                 output_filter_string = 'paper_id'
                                 interface_query = generate_wos_query(output_filter_string, filters)
                             else:
                                 interface_query = generate_wos_query(output_filter_string, filters)
+                                logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                                with open(json_path, 'w') as f:
+                                with open(csv_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
-                                convert_csv_to_json(csv_path, json_path, output_filter_string)
+                                # convert_csv_to_json(csv_path, json_path, output_filter_string)
 
                         else:
                             if network_query_type == 'citation':
@@ -268,12 +271,13 @@ def poll_queue():
                                     logger.info(result)
                             else:
                                 interface_query = generate_mag_query(output_filter_string, filters)
+                                logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
-                                with open(json_path, 'w') as f:
+                                with open(csv_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
-                                convert_csv_to_json(csv_path, json_path, output_filter_string)
-                        s3_client.meta.client.upload_file(json_path, root_bucket_name,
-                                                          bucket_location + job_id + '.json')
+                                # convert_csv_to_json(csv_path, json_path, output_filter_string)
+                        s3_client.meta.client.upload_file(csv_path, root_bucket_name,
+                                                          bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
                         updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
