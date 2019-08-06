@@ -58,11 +58,33 @@ def get_aws_region():
         raise Exception('Unable to find cadre.config file !')
 
 
-def get_aws_queue_url():
+def get_job_queue_url():
     try:
         config = get_cadre_config()
-        queue_url = config['AWS']['queue_url']
+        queue_url = config['AWS']['job_queue']
         return queue_url
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_package_queue_url():
+    try:
+        config = get_cadre_config()
+        queue_url = config['AWS']['package_queue']
+        return queue_url
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_tools_s3_root():
+    try:
+        config = get_cadre_config()
+        s3_root = config['AWS']['tools_s3_root']
+        return s3_root
     except Exception as e:
         traceback.print_tb(e.__traceback__)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')

@@ -44,7 +44,7 @@ sqs_client = boto3.client('sqs',
                     aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
                     region_name=util.config_reader.get_aws_region())
 
-queue_url = util.config_reader.get_aws_queue_url()
+queue_url = util.config_reader.get_job_queue_url()
 
 
 def generate_wos_query(output_filter_string, query_json):
@@ -229,7 +229,7 @@ def poll_queue():
                     output_filter_string = ",".join(output_filters_single)
                     # Updating the job status in the job database as running
                     print("Job ID: " + job_id)
-                    updateStatement = "UPDATE user_job SET job_status = 'RUNNING', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
+                    updateStatement = "UPDATE user_job SET job_status = 'RUNNING', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     print(meta_connection.get_dsn_parameters())
@@ -253,7 +253,7 @@ def poll_queue():
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'citation':
-                                output_filter_string = 'paper_id'
+                                output_filter_string = 'paper_reference_id'
                                 interface_query = generate_wos_query(output_filter_string, filters)
                             else:
                                 interface_query = generate_wos_query(output_filter_string, filters)
@@ -269,7 +269,7 @@ def poll_queue():
                                 with mag_driver.session() as session:
                                     neo4j_query = "CALL apoc.export.json.query(\"CALL apoc.load.jdbc('postgresql_url'," \
                                                   " ' " + interface_query + "') YIELD row MATCH (n:paper)<-[*2]-(m:paper)" \
-                                                  " WHERE n.paper_id = row.paper_id RETURN n, m\", '" + json_path +  "')"
+                                                  " WHERE n.paper_id = row.paper_id RETURN n, m\", '" + csv_path +  "')"
                                     result = session.run(neo4j_query)
                                     logger.info(result)
                             else:
@@ -283,13 +283,13 @@ def poll_queue():
                                                           bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
-                        updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
+                        updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
                         meta_db_cursor.execute(updateStatement, (job_id,))
                         meta_connection.commit()
 
                     print("Job ID: " + job_id)
-                    updateStatement = "UPDATE user_job SET job_status = 'COMPLETED', last_updated = CURRENT_TIMESTAMP WHERE j_id = (%s)"
+                    updateStatement = "UPDATE user_job SET job_status = 'COMPLETED', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     meta_connection.commit()
