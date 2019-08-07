@@ -229,7 +229,7 @@ def poll_queue():
                     output_filter_string = ",".join(output_filters_single)
                     # Updating the job status in the job database as running
                     print("Job ID: " + job_id)
-                    updateStatement = "UPDATE user_job SET job_status = 'RUNNING', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    updateStatement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     print(meta_connection.get_dsn_parameters())
@@ -283,13 +283,13 @@ def poll_queue():
                                                           bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
-                        updateStatement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                        updateStatement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
                         meta_db_cursor.execute(updateStatement, (job_id,))
                         meta_connection.commit()
 
                     print("Job ID: " + job_id)
-                    updateStatement = "UPDATE user_job SET job_status = 'COMPLETED', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    updateStatement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     meta_connection.commit()

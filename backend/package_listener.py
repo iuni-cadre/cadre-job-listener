@@ -154,7 +154,7 @@ def poll_queue():
                     username = query_json['username']
                     output_file_names = query_json['output_filenames']
                     logger.info("Job ID: " + job_id)
-                    update_statement = "UPDATE user_job SET job_status = 'RUNNING', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
                     meta_connection.commit()
@@ -209,13 +209,13 @@ def poll_queue():
                                                           bucket_location + output_file)
                     except:
                         print("Job ID: " + job_id)
-                        update_statement = "UPDATE user_job SET job_status = 'FAILED', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                        update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
                         meta_db_cursor.execute(update_statement, (job_id,))
                         meta_connection.commit()
 
                     print("Job ID: " + job_id)
-                    update_statement = "UPDATE user_job SET job_status = 'COMPLETED', last_updated = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
                     meta_connection.commit()
