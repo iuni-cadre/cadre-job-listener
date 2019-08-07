@@ -201,9 +201,10 @@ def poll_queue():
             meta_connection = cadre_meta_connection_pool.getconn()
             meta_db_cursor = meta_connection.cursor()
             output_filters_single = []
-            try:
-                for message in response['Messages']:
-                    receipt_handle = message['ReceiptHandle']
+
+            for message in response['Messages']:
+                receipt_handle = message['ReceiptHandle']
+                try:
                     message_body = message['Body']
                     logger.info(message_body)
                     logger.info("Received message id " + message['MessageId'])
@@ -270,7 +271,7 @@ def poll_queue():
                                 with mag_driver.session() as session:
                                     neo4j_query = "CALL apoc.export.json.query(\"CALL apoc.load.jdbc('postgresql_url'," \
                                                   " ' " + interface_query + "') YIELD row MATCH (n:paper)<-[*2]-(m:paper)" \
-                                                  " WHERE n.paper_id = row.paper_id RETURN n, m\", '" + csv_path +  "')"
+                                                                            " WHERE n.paper_id = row.paper_id RETURN n, m\", '" + csv_path +  "')"
                                     result = session.run(neo4j_query)
                                     logger.info(result)
                             else:
@@ -294,23 +295,22 @@ def poll_queue():
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     meta_connection.commit()
-
+                except (Exception, psycopg2.Error) as error:
+                    traceback.print_tb(error.__traceback__)
+                    logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
+                finally:
+                    # Closing database connection.
+                    wos_cursor.close()
+                    mag_cursor.close()
+                    meta_db_cursor.close()
+                    # Use this method to release the connection object and send back ti connection pool
+                    wos_connection_pool.putconn(wos_connection)
+                    mag_connection_pool.putconn(mag_connection)
+                    cadre_meta_connection_pool.putconn(meta_connection)
+                    print("PostgreSQL connection pool is closed")
                     # Delete received message from queue
                     sqs_client.delete_message(
                         QueueUrl=queue_url,
                         ReceiptHandle=receipt_handle
                     )
                     logger.info('Received and deleted message: %s' % message)
-            except (Exception, psycopg2.Error) as error:
-                traceback.print_tb(error.__traceback__)
-                logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
-            finally:
-                # Closing database connection.
-                wos_cursor.close()
-                mag_cursor.close()
-                meta_db_cursor.close()
-                # Use this method to release the connection object and send back ti connection pool
-                wos_connection_pool.putconn(wos_connection)
-                mag_connection_pool.putconn(mag_connection)
-                cadre_meta_connection_pool.putconn(meta_connection)
-                print("PostgreSQL connection pool is closed")

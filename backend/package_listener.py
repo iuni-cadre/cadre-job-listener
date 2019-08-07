@@ -141,9 +141,10 @@ def poll_queue():
         if 'Messages' in response:
             meta_connection = cadre_meta_connection_pool.getconn()
             meta_db_cursor = meta_connection.cursor()
-            try:
-                for message in response['Messages']:
-                    receipt_handle = message['ReceiptHandle']
+
+            for message in response['Messages']:
+                receipt_handle = message['ReceiptHandle']
+                try:
                     message_body = message['Body']
                     logger.info(message_body)
                     logger.info("Received message id " + message['MessageId'])
@@ -207,7 +208,7 @@ def poll_queue():
                             logger.info(ouptut_path)
                             # convert_csv_to_json(ouptut_path, json_path, output_filter_string)
                             s3_client.meta.client.upload_file(ouptut_path, root_bucket_name,
-                                                          bucket_location + output_file)
+                                                              bucket_location + output_file)
                     except:
                         print("Job ID: " + job_id)
                         update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
@@ -220,19 +221,18 @@ def poll_queue():
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
                     meta_connection.commit()
-
+                except (Exception, psycopg2.Error) as error:
+                    traceback.print_tb(error.__traceback__)
+                    logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
+                finally:
+                    # Closing database connection.
+                    meta_db_cursor.close()
+                    # Use this method to release the connection object and send back ti connection pool
+                    cadre_meta_connection_pool.putconn(meta_connection)
+                    print("PostgreSQL connection pool is closed")
                     # Delete received message from queue
                     package_sqs_client.delete_message(
                         QueueUrl=package_queue_url,
                         ReceiptHandle=receipt_handle
                     )
                     logger.info('Received and deleted message: %s' % message)
-            except (Exception, psycopg2.Error) as error:
-                traceback.print_tb(error.__traceback__)
-                logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
-            finally:
-                # Closing database connection.
-                meta_db_cursor.close()
-                # Use this method to release the connection object and send back ti connection pool
-                cadre_meta_connection_pool.putconn(meta_connection)
-                print("PostgreSQL connection pool is closed")
