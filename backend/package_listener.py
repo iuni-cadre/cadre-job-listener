@@ -10,6 +10,7 @@ from os import path
 import boto3
 import psycopg2 as psycopg2
 import docker
+import time
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
@@ -25,7 +26,7 @@ logfile_path = cadre + "/cadre_job_listener.log"
 if path.isfile(logfile_path):
     os.remove(logfile_path)
 
-log_conf = conf + '/logging-conf.json'
+log_conf = conf + '/logging-package-conf.json'
 with open(log_conf, 'r') as logging_configuration_file:
     config_dict = json.load(logging_configuration_file)
 
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 logger.info('Completed configuring logger()!')
 
 
-logger = logging.getLogger('cadre_job_listener')
+logger = logging.getLogger('cadre_package_listener')
 
 # Create SQS client
 package_sqs_client = boto3.client('sqs',
@@ -122,6 +123,7 @@ def run_docker_script(input_file_list, docker_path, tool_name, volume, command, 
 
 
 def poll_queue():
+    logger.info("****************")
     while True:
         # Receive message from SQS queue
         response = package_sqs_client.receive_message(
@@ -136,6 +138,7 @@ def poll_queue():
             VisibilityTimeout=300,
             WaitTimeSeconds=0
         )
+        time.sleep(1)
 
         if 'Messages' in response:
             meta_connection = cadre_meta_connection_pool.getconn()
@@ -152,7 +155,7 @@ def poll_queue():
                     job_id = query_json['job_id']
                     package_id = query_json['package_id']
                     username = query_json['username']
-                    output_file_names = query_json['output_filenames']
+                    output_file_names = query_json['output_filename']
                     logger.info("Job ID: " + job_id)
                     update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query

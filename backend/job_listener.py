@@ -8,6 +8,7 @@ from os import path
 
 import boto3
 import psycopg2 as psycopg2
+import time
 
 from neo4j import GraphDatabase
 
@@ -25,7 +26,7 @@ logfile_path = cadre + "/cadre_job_listener.log"
 if path.isfile(logfile_path):
     os.remove(logfile_path)
 
-log_conf = conf + '/logging-conf.json'
+log_conf = conf + '/logging-job-conf.json'
 with open(log_conf, 'r') as logging_configuration_file:
     config_dict = json.load(logging_configuration_file)
 
@@ -191,6 +192,7 @@ def poll_queue():
             VisibilityTimeout=300,
             WaitTimeSeconds=0
         )
+        time.sleep(1)
 
         if 'Messages' in response:
             wos_connection = wos_connection_pool.getconn()
