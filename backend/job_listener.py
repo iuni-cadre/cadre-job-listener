@@ -193,7 +193,6 @@ def poll_queue():
             VisibilityTimeout=300,
             WaitTimeSeconds=0
         )
-        time.sleep(1)
 
         if 'Messages' in response:
             wos_connection = wos_connection_pool.getconn()

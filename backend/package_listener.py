@@ -138,7 +138,6 @@ def poll_queue():
             VisibilityTimeout=300,
             WaitTimeSeconds=0
         )
-        time.sleep(1)
 
         if 'Messages' in response:
             meta_connection = cadre_meta_connection_pool.getconn()
@@ -173,7 +172,7 @@ def poll_queue():
                         os.makedirs(user_package_run_dir)
 
                     # get package info
-                    get_package_q = "SELECT a.s3_location, a.name from package p, archive a WHERE p.archive_id=a.achive_id AND p.package_id=%s"
+                    get_package_q = "SELECT a.s3_location, a.name from package p, archive a WHERE p.archive_id=a.archive_id AND p.package_id=%s"
                     meta_db_cursor.execute(get_package_q, (package_id,))
 
                     input_file_list = []
