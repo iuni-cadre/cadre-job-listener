@@ -179,7 +179,6 @@ def convert_csv_to_json(csv_path, json_path, output_filter_string):
 
 def poll_queue():
     while True:
-        logger.info("job listener")
         time.sleep(1)
         # Receive message from SQS queue
         response = sqs_client.receive_message(

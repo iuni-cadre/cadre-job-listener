@@ -124,7 +124,6 @@ def run_docker_script(input_file_list, docker_path, tool_name, volume, command, 
 
 def poll_queue():
     while True:
-        logger.info("package listener")
         time.sleep(1)
         # Receive message from SQS queue
         response = package_sqs_client.receive_message(
