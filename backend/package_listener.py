@@ -19,10 +19,10 @@ conf = cadre + '/conf'
 sys.path.append(cadre)
 
 import util.config_reader
-from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver
+from util.db_util import cadre_meta_connection_pool
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
-logfile_path = cadre + "/cadre_job_listener.log"
+logfile_path = cadre + "/cadre_package_listener.log"
 if path.isfile(logfile_path):
     os.remove(logfile_path)
 
@@ -124,7 +124,6 @@ def run_docker_script(input_file_list, docker_path, tool_name, volume, command, 
 
 def poll_queue():
     while True:
-        time.sleep(1)
         # Receive message from SQS queue
         response = package_sqs_client.receive_message(
             QueueUrl=package_queue_url,
