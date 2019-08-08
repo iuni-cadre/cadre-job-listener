@@ -90,20 +90,25 @@ def download_s3_dir(client, bucket, path, target):
                 client.meta.client.download_file(bucket, key['Key'], local_file_path)
 
 
-def run_docker_script(input_file_list, docker_path, tool_name, command, script_name):
+def run_docker_script(input_file_list, docker_path, tool_name, command, script_name, package_id, output_files, output_path):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
     tool_name = tool_name.replace(" ", "")
     # We are building the docker image from the dockerfile here
     image = client.images.build(path=docker_path, tag=tool_name, forcerm=True)
     logger.info("The image has been built successfully. ")
     command_list = [command, script_name]
+    shared_inputs = []
     volume = '/tmp'
     for input_file in input_file_list:
         file_name = ntpath.basename(input_file)
         file_name_for_image = volume + '/' + file_name
         copyfile(input_file, file_name_for_image)
-        command_list.append(file_name_for_image)
-
+        shared_inputs.append(file_name_for_image)
+    shared_inputs_as_string = ",".join(shared_inputs)
+    output_names = ",".join(output_files)
+    command_list.append(shared_inputs_as_string)
+    command_list.append(output_names)
+    command_list.append(package_id)
     logger.info(command_list)
 
     container = client.containers.run(tool_name,
@@ -115,6 +120,11 @@ def run_docker_script(input_file_list, docker_path, tool_name, command, script_n
     logger.info(container.logs())
     logger.info('The output of the file has been copied successfully outside the docker container')
 
+    # copy output files to shared location
+    for output_name in output_files:
+        output_path_target = output_path + '/' + output_name
+        output_source = volume + '/' + package_id + '/' + output_name
+        copyfile(output_source, output_path_target)
     # Delete the docker container
     # client.containers.remove('sample_test', force=True)
     # print('The container has been removed successfully.')
@@ -213,7 +223,7 @@ def poll_queue():
                         if not os.path.exists(user_package_run_dir):
                             os.makedirs(user_tool_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name)
+                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, package_id, output_file_names)
                     try:
                         for output_file in output_file_names:
                             ouptut_path = user_package_run_dir + '/' + output_file
