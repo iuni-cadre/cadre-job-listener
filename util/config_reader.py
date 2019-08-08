@@ -91,6 +91,16 @@ def get_tools_s3_root():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_archive_s3_root():
+    try:
+        config = get_cadre_config()
+        s3_root = config['AWS']['archive_s3_root']
+        return s3_root
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
 def get_wos_db_hostname():
     try:
         config = get_cadre_config()

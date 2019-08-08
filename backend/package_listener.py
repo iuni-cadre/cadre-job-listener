@@ -173,24 +173,28 @@ def poll_queue():
 
                     # get package info
                     get_package_q = "SELECT a.s3_location, a.name from package p, archive a WHERE p.archive_id=a.archive_id AND p.package_id=%s"
-                    meta_db_cursor.execute(get_package_q, (package_id,))
+                    meta_db_cursor.execute(get_package_q, (str(package_id),))
+                    s3_archive_root = util.config_reader.get_archive_s3_root()
 
                     input_file_list = []
-                    if meta_db_cursor.rowcount() > 0:
+                    if meta_db_cursor.rowcount > 0:
                         input_files = meta_db_cursor.fetchall()
+                        logger.info(input_files)
                         for input_file in input_files:
                             s3_location_root = input_file[0]
+                            s3_archive_folder = s3_location_root[len(s3_archive_root):]
+                            logger.info(s3_archive_folder)
                             s3_file_name = input_file[1]
                             input_copy = user_package_run_dir + '/' + s3_file_name
                             # download file from s3 and copy it to package_run dir in efs
-                            s3_client.meta.client.download_file(s3_location_root, s3_file_name, input_copy)
+                            s3_client.meta.client.download_file(s3_archive_root, s3_archive_folder + '/' + s3_file_name, input_copy)
                             input_file_list.append(input_copy)
 
                     # get tool info
                     get_tool_q = "SELECT  t.name, t.tool_id, t.command, t.script_name FROM tool t, package p WHERE p.tool_id =t.tool_id AND p.package_id=%s"
                     meta_db_cursor.execute(get_package_q, (package_id,))
 
-                    if meta_db_cursor.rowcount() > 0:
+                    if meta_db_cursor.rowcount > 0:
                         tool_info = meta_db_cursor.fetchone()
                         docker_s3_root = util.config_reader.get_tools_s3_root()
                         tool_name = tool_info[0]
