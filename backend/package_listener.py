@@ -2,10 +2,12 @@ import csv
 import errno
 import json
 import logging.config
+import ntpath
 import os
 import sys
 import traceback
 from os import path
+from shutil import copyfile
 
 import boto3
 import psycopg2 as psycopg2
@@ -73,7 +75,7 @@ def download_s3_dir(client, bucket, path, target):
     if not path.endswith('/'):
         path += '/'
 
-    paginator = client.get_paginator('list_objects_v2')
+    paginator = client.meta.client.get_paginator('list_objects_v2')
     for result in paginator.paginate(Bucket=bucket, Prefix=path):
         # Download each file individually
         for key in result['Contents']:
@@ -85,18 +87,22 @@ def download_s3_dir(client, bucket, path, target):
                 # Make sure directories exist
                 local_file_dir = os.path.dirname(local_file_path)
                 assert_dir_exists(local_file_dir)
-                client.download_file(bucket, key['Key'], local_file_path)
+                client.meta.client.download_file(bucket, key['Key'], local_file_path)
 
 
-def run_docker_script(input_file_list, docker_path, tool_name, volume, command, script_name):
+def run_docker_script(input_file_list, docker_path, tool_name, command, script_name):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
     # We are building the docker image from the dockerfile here
     image = client.images.build(path=docker_path, tag=tool_name, forcerm=True)
     logger.info("The image has been built successfully. ")
     command_list = [command, script_name]
+    volume = '/tmp'
     for input_file in input_file_list:
-        command_list.append(input_file)
+        file_name = ntpath.basename(input_file)
+        file_name_for_image = volume + '/' + file_name
+        copyfile(input_file, file_name_for_image)
+        command_list.append(file_name_for_image)
 
     logger.info(command_list)
 
@@ -182,17 +188,19 @@ def poll_queue():
                         logger.info(input_files)
                         for input_file in input_files:
                             s3_location_root = input_file[0]
-                            s3_archive_folder = s3_location_root[len(s3_archive_root):]
+                            s3_archive_folder = s3_location_root[len(s3_archive_root) + 2:]
                             logger.info(s3_archive_folder)
                             s3_file_name = input_file[1]
                             input_copy = user_package_run_dir + '/' + s3_file_name
                             # download file from s3 and copy it to package_run dir in efs
-                            s3_client.meta.client.download_file(s3_archive_root, s3_archive_folder + '/' + s3_file_name, input_copy)
+                            folder_path = s3_archive_folder + '/' + s3_file_name
+                            logger.info(folder_path)
+                            s3_client.meta.client.download_file(s3_archive_root, folder_path, input_copy)
                             input_file_list.append(input_copy)
 
                     # get tool info
                     get_tool_q = "SELECT  t.name, t.tool_id, t.command, t.script_name FROM tool t, package p WHERE p.tool_id =t.tool_id AND p.package_id=%s"
-                    meta_db_cursor.execute(get_package_q, (package_id,))
+                    meta_db_cursor.execute(get_tool_q, (package_id,))
 
                     if meta_db_cursor.rowcount > 0:
                         tool_info = meta_db_cursor.fetchone()
@@ -205,7 +213,7 @@ def poll_queue():
                         if not os.path.exists(user_package_run_dir):
                             os.makedirs(user_tool_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        run_docker_script(input_file_list,user_tool_dir, tool_name, user_package_run_dir, command, script_name)
+                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name)
                     try:
                         for output_file in output_file_names:
                             ouptut_path = user_package_run_dir + '/' + output_file
