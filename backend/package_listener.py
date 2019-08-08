@@ -92,7 +92,7 @@ def download_s3_dir(client, bucket, path, target):
 
 def run_docker_script(input_file_list, docker_path, tool_name, command, script_name):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
-
+    tool_name = tool_name.replace(" ", "")
     # We are building the docker image from the dockerfile here
     image = client.images.build(path=docker_path, tag=tool_name, forcerm=True)
     logger.info("The image has been built successfully. ")
