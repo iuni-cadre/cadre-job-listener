@@ -223,7 +223,7 @@ def poll_queue():
                         if not os.path.exists(user_package_run_dir):
                             os.makedirs(user_tool_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, package_id, output_file_names)
+                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, package_id, output_file_names, user_package_run_dir)
                     try:
                         for output_file in output_file_names:
                             ouptut_path = user_package_run_dir + '/' + output_file
