@@ -103,7 +103,7 @@ def generate_wos_query(output_filter_string, query_json):
 def generate_mag_query(output_filter_string, query_json):
     logger.info(output_filter_string)
     logger.info(query_json)
-    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.mag_interface_table WHERE '
+    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.final_mag_interface_table WHERE '
     for item in query_json:
         if 'value' in item:
             value = item['value']
@@ -175,6 +175,28 @@ def convert_csv_to_json(csv_path, json_path, output_filter_string):
     for row in reader:
         json.dump(row, jsonfile)
         jsonfile.write('\n')
+
+
+def degree_1_query(interface_query, node_file_name, edge_file_name):
+    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
+                  " '" + interface_query + \
+                  "') YIELD row MATCH (n:paper)<-[r:REFERENCES]-(m:paper)" \
+                  " WHERE n.paper_id = row.paper_id WITH collect(distinct m) + n as nodes, " \
+                  "collect(distinct r) as relationships CALL apoc.export.csv.data([], relationships, '" + edge_file_name + "', {}) " \
+                  "YIELD file as edgefile CALL apoc.export.csv.data(nodes, [], '" + node_file_name + "', {}) " \
+                  "YIELD file as nodefile RETURN nodes, relationships"
+    return neo4j_query
+
+
+def degree_2_query(interface_query, node_file_name, edge_file_name):
+    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
+                  " '" + interface_query + \
+                  "') YIELD row MATCH (n:paper)<-[r:REFERENCES]-(m:paper)<-[s:REFERENCES]-(o:paper)" \
+                  " WHERE n.paper_id = row.paper_id WITH collect(distinct m)  + collect(distinct o) + n as nodes, " \
+                  "collect(distinct r) + collect(distinct s) as relationships CALL apoc.export.csv.data(nodes, [],  '" + node_file_name + "', {}) " \
+                  "YIELD file as nodefile CALL apoc.export.csv.data([], relationships, '" + edge_file_name + "', {}) " \
+                  "YIELD file as edgefile RETURN nodes, relationships"
+    return neo4j_query
 
 
 def poll_queue():
@@ -250,38 +272,51 @@ def poll_queue():
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
                         csv_path = user_query_result_dir + job_id + '.csv'
+                        node_path = user_query_result_dir + job_id + '_nodes'
+                        edge_path = user_query_result_dir + job_id + '_edges'
                         logger.info(csv_path)
                         logger.info(dataset)
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'citation':
-                                output_filter_string = 'paper_reference_id'
-                                interface_query = generate_wos_query(output_filter_string, filters)
+                                # output_filters_single.append('paper_reference_id')
+                                # output_filter_string = ",".join(output_filters_single)
+                                # interface_query = generate_wos_query(output_filter_string, filters)
+                                logger.info("Not yet supported...")
                             else:
                                 interface_query = generate_wos_query(output_filter_string, filters)
                                 logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
+                                s3_client.meta.client.upload_file(csv_path, root_bucket_name,
+                                                                  bucket_location + job_id + '.csv')
                         else:
                             logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citation':
-                                output_filter_string = 'paper_id'
+                                output_filters_single.append('paper_id')
+                                output_filter_string = ",".join(output_filters_single)
                                 interface_query = generate_mag_query(output_filter_string, filters)
+
                                 with mag_driver.session() as session:
-                                    neo4j_query = "CALL apoc.export.json.query(\"CALL apoc.load.jdbc('postgresql_url'," \
-                                                  " ' " + interface_query + "') YIELD row MATCH (n:paper)<-[*2]-(m:paper)" \
-                                                                            " WHERE n.paper_id = row.paper_id RETURN n, m\", '" + csv_path +  "')"
-                                    result = session.run(neo4j_query)
-                                    logger.info(result)
+                                    if degree == 1:
+                                        neo4j_query = degree_1_query(interface_query, node_path, edge_path)
+                                    elif degree == 2:
+                                        neo4j_query = degree_2_query(interface_query, node_path, edge_path)
+                                    else:
+                                        logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
+                                        neo4j_query = degree_2_query(interface_query, node_path, edge_path)
+
+                                    logger.info(neo4j_query)
+                                    session.run(neo4j_query)
+                                    # copy files to correct EFS location and s3 locations
                             else:
                                 interface_query = generate_mag_query(output_filter_string, filters)
                                 logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
-                                # convert_csv_to_json(csv_path, json_path, output_filter_string)
-                        s3_client.meta.client.upload_file(csv_path, root_bucket_name,
+                                s3_client.meta.client.upload_file(csv_path, root_bucket_name,
                                                           bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
