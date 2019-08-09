@@ -106,7 +106,7 @@ def run_docker_script(input_file_list, docker_path, tool_name, command, script_n
         shared_inputs.append(file_name_for_image)
     shared_inputs_as_string = ",".join(shared_inputs)
     output_names = ",".join(output_files)
-    output_names = output_names.replace((" ", ""))
+    output_names = output_names.replace(" ", "")
     command_list.append(shared_inputs_as_string)
     command_list.append(output_names)
     command_list.append(package_id)
