@@ -61,10 +61,9 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                 if value is not None:
                     value = value.strip()
                     if len(value) == 4 and value.isdigit():
+                        value = "'{}'".format(value)
                         if network_enabled:
-                            value = "\'{}\'".format(value)
-                        else:
-                            value = "'{}'".format(value)
+                            value = value.replace("'", "\\'")
                         logger.info("Year: " + value)
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
@@ -74,10 +73,9 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     logger.info("Journals Name: " + value)
                     interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # journals.append(value)
@@ -87,10 +85,9 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     logger.info("authors_full_name: " + value)
                     interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
                     # authors.append(value)
@@ -99,10 +96,9 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     logger.info("Title: " + value)
                     interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
@@ -127,10 +123,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                 if value is not None:
                     value = value.strip()
                     if len(value) == 4 and value.isdigit():
+                        value = "'{}'".format(value)
                         if network_enabled:
-                            value = "\'{}\'".format(value)
-                        else:
-                            value = "'{}'".format(value)
+                            value = value.replace("'", "\\'")
                         print("Year: " + value)
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
@@ -140,10 +135,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     print("Journals Name: " + value)
                     interface_query += ' journal_display_name iLIKE {} '.format(value) + operand
                     # journals.append(value)
@@ -153,10 +147,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value.upper() + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     logger.info('Book Title: ' + value)
                     interface_query += ' book_title iLIKE {} '.format(value) + operand
             elif field == 'doi':
@@ -164,10 +157,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value.upper() + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     logger.info('DOI: ' + value)
                     interface_query += ' doi iLIKE {} '.format(value) + operand
             elif field == 'conference_display_name':
@@ -175,10 +167,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value.upper() + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     logger.info('conferenceDisplayName: ' + value)
                     interface_query += ' conference_display_name iLIKE {} '.format(value) + operand
             elif field == 'paper_title':
@@ -186,10 +177,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
+                    value = "'{}'".format(value)
                     if network_enabled:
-                        value = "\'{}\'".format(value)
-                    else:
-                        value = "'{}'".format(value)
+                        value = value.replace("'", "\\'")
                     print("Title: " + value)
                     interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
