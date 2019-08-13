@@ -9,6 +9,7 @@ from os import path
 import boto3
 import psycopg2 as psycopg2
 import time
+from shutil import copyfile
 
 from neo4j import GraphDatabase
 
@@ -184,7 +185,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
 
-    interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+    interface_query = interface_query + 'LIMIT' + ' ' + '100'
     print("Query: " + interface_query)
     return interface_query
 
@@ -291,12 +292,13 @@ def poll_queue():
                     # Generating the Query that needs to run on the RDS
                     try:
                         efs_root = util.config_reader.get_cadre_efs_root()
+                        neo4j_import = util.config_reader.get_mag_graph_db_import_dir()
                         user_query_result_dir = efs_root + '/' + username + '/query-results/'
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
-                        csv_path = user_query_result_dir + job_id + '.csv'
-                        node_path = user_query_result_dir + job_id + '_nodes'
-                        edge_path = user_query_result_dir + job_id + '_edges'
+                        csv_path = job_id + '.csv'
+                        node_path = job_id + '_nodes.csv'
+                        edge_path = job_id + '_edges.csv'
                         logger.info(csv_path)
                         logger.info(dataset)
                         if dataset == 'wos':
@@ -331,10 +333,11 @@ def poll_queue():
                                     else:
                                         logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                         neo4j_query = degree_2_query(interface_query, node_path, edge_path)
-
                                     logger.info(neo4j_query)
                                     session.run(neo4j_query)
                                     # copy files to correct EFS location and s3 locations
+                                    copyfile(neo4j_import + '/' + node_path, user_query_result_dir + '/' + node_path)
+                                    copyfile(neo4j_import + '/' + edge_path, user_query_result_dir + '/' + edge_path)
                             else:
                                 network_enabled = False
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)

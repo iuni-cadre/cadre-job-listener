@@ -244,6 +244,16 @@ def get_mag_graph_db_pwd():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_mag_graph_db_import_dir():
+    try:
+        config = get_cadre_config()
+        import_dir = config['MAG_GRAPH_DB_INFO']['import_location']
+        return import_dir
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
 def get_cadre_db_hostname():
     try:
         config = get_cadre_config()
