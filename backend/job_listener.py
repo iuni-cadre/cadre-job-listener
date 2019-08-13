@@ -278,7 +278,7 @@ def poll_queue():
                         logger.info(dataset)
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
-                            if network_query_type == 'citation':
+                            if network_query_type == 'citations':
                                 # output_filters_single.append('paper_reference_id')
                                 # output_filter_string = ",".join(output_filters_single)
                                 # interface_query = generate_wos_query(output_filter_string, filters)
@@ -293,7 +293,7 @@ def poll_queue():
                                                                   bucket_location + job_id + '.csv')
                         else:
                             logger.info('User selects MAG dataset !!!')
-                            if network_query_type == 'citation':
+                            if network_query_type == 'citations':
                                 output_filters_single.append('paper_id')
                                 output_filter_string = ",".join(output_filters_single)
                                 interface_query = generate_mag_query(output_filter_string, filters)
