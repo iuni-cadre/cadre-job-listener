@@ -48,7 +48,7 @@ sqs_client = boto3.client('sqs',
 queue_url = util.config_reader.get_job_queue_url()
 
 
-def generate_wos_query(output_filter_string, query_json):
+def generate_wos_query(output_filter_string, query_json, network_enabled):
     interface_query = 'SELECT ' + output_filter_string + ' FROM wos_core.interface_table WHERE '
     for item in query_json:
         if 'value' in item:
@@ -61,7 +61,10 @@ def generate_wos_query(output_filter_string, query_json):
                 if value is not None:
                     value = value.strip()
                     if len(value) == 4 and value.isdigit():
-                        value = "'{}'".format(value)
+                        if network_enabled:
+                            value = "\'{}\'".format(value)
+                        else:
+                            value = "'{}'".format(value)
                         logger.info("Year: " + value)
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
@@ -71,7 +74,10 @@ def generate_wos_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
-                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     logger.info("Journals Name: " + value)
                     interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # journals.append(value)
@@ -81,7 +87,10 @@ def generate_wos_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
-                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     logger.info("authors_full_name: " + value)
                     interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
                     # authors.append(value)
@@ -90,7 +99,10 @@ def generate_wos_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
-                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     logger.info("Title: " + value)
                     interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
@@ -100,7 +112,7 @@ def generate_wos_query(output_filter_string, query_json):
     return interface_query
 
 
-def generate_mag_query(output_filter_string, query_json):
+def generate_mag_query(output_filter_string, query_json, network_enabled):
     logger.info(output_filter_string)
     logger.info(query_json)
     interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.final_mag_interface_table WHERE '
@@ -115,7 +127,10 @@ def generate_mag_query(output_filter_string, query_json):
                 if value is not None:
                     value = value.strip()
                     if len(value) == 4 and value.isdigit():
-                        value = "'{}'".format(value)
+                        if network_enabled:
+                            value = "\'{}\'".format(value)
+                        else:
+                            value = "'{}'".format(value)
                         print("Year: " + value)
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
@@ -125,7 +140,10 @@ def generate_mag_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
-                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     print("Journals Name: " + value)
                     interface_query += ' journal_display_name iLIKE {} '.format(value) + operand
                     # journals.append(value)
@@ -135,6 +153,10 @@ def generate_mag_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value.upper() + '%'
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     logger.info('Book Title: ' + value)
                     interface_query += ' book_title iLIKE {} '.format(value) + operand
             elif field == 'doi':
@@ -142,6 +164,10 @@ def generate_mag_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value.upper() + '%'
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     logger.info('DOI: ' + value)
                     interface_query += ' doi iLIKE {} '.format(value) + operand
             elif field == 'conference_display_name':
@@ -149,6 +175,10 @@ def generate_mag_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value.upper() + '%'
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     logger.info('conferenceDisplayName: ' + value)
                     interface_query += ' conference_display_name iLIKE {} '.format(value) + operand
             elif field == 'paper_title':
@@ -156,7 +186,10 @@ def generate_mag_query(output_filter_string, query_json):
                     value = value.strip()
                     value = value.replace(' ', '%')
                     value = '%' + value + '%'
-                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = "\'{}\'".format(value)
+                    else:
+                        value = "'{}'".format(value)
                     print("Title: " + value)
                     interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
@@ -284,7 +317,8 @@ def poll_queue():
                                 # interface_query = generate_wos_query(output_filter_string, filters)
                                 logger.info("Not yet supported...")
                             else:
-                                interface_query = generate_wos_query(output_filter_string, filters)
+                                network_enabled = False
+                                interface_query = generate_wos_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
@@ -294,9 +328,10 @@ def poll_queue():
                         else:
                             logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citations':
+                                network_enabled = True
                                 output_filters_single.append('paper_id')
                                 output_filter_string = ",".join(output_filters_single)
-                                interface_query = generate_mag_query(output_filter_string, filters)
+                                interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
 
                                 with mag_driver.session() as session:
                                     if degree == 1:
@@ -311,7 +346,8 @@ def poll_queue():
                                     session.run(neo4j_query)
                                     # copy files to correct EFS location and s3 locations
                             else:
-                                interface_query = generate_mag_query(output_filter_string, filters)
+                                network_enabled = False
+                                interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
