@@ -296,9 +296,9 @@ def poll_queue():
                         neo4j_import_datasets = util.config_reader.get_mag_graph_db_import_dir()
                         neo4j_import_listener = util.config_reader.get_cadre_efs_root_neo4j_output_listener()
                         user_query_result_dir = efs_root + '/' + username + '/query-results'
-                        shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
+                        shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
                         csv_path =  user_query_result_dir + '/' + job_id + '.csv'
                         node_path = job_id + '_nodes.csv'
                         edge_path = job_id + '_edges.csv'
@@ -358,7 +358,7 @@ def poll_queue():
                                 with open(csv_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
                                 s3_client.meta.client.upload_file(csv_path, root_bucket_name,
-                                                          bucket_location + job_id + '.csv')
+                                                                  bucket_location + job_id + '.csv')
                     except:
                         print("Job ID: " + job_id)
                         updateStatement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
