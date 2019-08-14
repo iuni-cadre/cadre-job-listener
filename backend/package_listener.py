@@ -171,7 +171,7 @@ def poll_queue():
                                                region_name=util.config_reader.get_aws_region())
                     root_bucket_name = 'cadre-query-result'
                     bucket_location = username + '/packages/' + package_id + '/'
-                    efs_root = util.config_reader.get_cadre_efs_root()
+                    efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
                     user_package_run_dir = efs_root + '/' + username + '/packages/' + package_id
                     if not os.path.exists(user_package_run_dir):
                         os.makedirs(user_package_run_dir)

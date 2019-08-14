@@ -291,8 +291,9 @@ def poll_queue():
 
                     # Generating the Query that needs to run on the RDS
                     try:
-                        efs_root = util.config_reader.get_cadre_efs_root()
-                        neo4j_import = util.config_reader.get_mag_graph_db_import_dir()
+                        efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
+                        neo4j_import_datasets = util.config_reader.get_mag_graph_db_import_dir()
+                        neo4j_import_listener = util.config_reader.get_cadre_efs_root_neo4j_output_listener()
                         user_query_result_dir = efs_root + '/' + username + '/query-results/'
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
@@ -336,12 +337,12 @@ def poll_queue():
                                     logger.info(neo4j_query)
                                     session.run(neo4j_query)
                                     # copy files to correct EFS location and s3 locations
-                                    source_node_path = neo4j_import + '/' + node_path
+                                    source_node_path = neo4j_import_listener + '/' + node_path
                                     target_node_path = user_query_result_dir + '/' + node_path
                                     logger.info(source_node_path)
                                     logger.info(target_node_path)
                                     copyfile(source_node_path, target_node_path)
-                                    source_edge_path = neo4j_import + '/' + edge_path
+                                    source_edge_path = neo4j_import_listener + '/' + edge_path
                                     target_edge_path = user_query_result_dir + '/' + edge_path
                                     copyfile(source_edge_path, target_edge_path)
                             else:
