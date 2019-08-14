@@ -2,6 +2,7 @@ import csv
 import json
 import logging.config
 import os
+import shutil
 import sys
 import traceback
 from os import path
@@ -339,11 +340,14 @@ def poll_queue():
                                     # copy files to correct EFS location and s3 locations
                                     source_node_path = neo4j_import_listener + '/' + node_path
                                     target_node_path = user_query_result_dir + '/' + node_path
+                                    shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
                                     logger.info(source_node_path)
                                     logger.info(target_node_path)
                                     copyfile(source_node_path, target_node_path)
                                     source_edge_path = neo4j_import_listener + '/' + edge_path
                                     target_edge_path = user_query_result_dir + '/' + edge_path
+                                    logger.info(source_edge_path)
+                                    logger.info(target_edge_path)
                                     copyfile(source_edge_path, target_edge_path)
                             else:
                                 network_enabled = False
