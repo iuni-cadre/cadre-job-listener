@@ -105,7 +105,10 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
 
-    interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+    if network_enabled:
+        interface_query = interface_query + 'LIMIT' + ' ' + '1000'
+    else:
+        interface_query = interface_query + 'LIMIT' + ' ' + '10000'
     print("Query: " + interface_query)
     return interface_query
 
@@ -186,7 +189,10 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
 
-    interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+    if network_enabled:
+        interface_query = interface_query + 'LIMIT' + ' ' + '1000'
+    else:
+        interface_query = interface_query + 'LIMIT' + ' ' + '10000'
     print("Query: " + interface_query)
     return interface_query
 
