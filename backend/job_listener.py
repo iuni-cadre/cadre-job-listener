@@ -253,6 +253,7 @@ def poll_queue():
             mag_cursor = mag_connection.cursor()
             meta_connection = cadre_meta_connection_pool.getconn()
             meta_db_cursor = meta_connection.cursor()
+            driver_session = mag_driver.session()
             output_filters_single = []
 
             for message in response['Messages']:
@@ -335,33 +336,31 @@ def poll_queue():
                                 logger.info(output_filter_string)
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
+                                if degree == 1:
+                                    neo4j_query = degree_1_query(interface_query, node_path, edge_path)
+                                elif degree == 2:
+                                    neo4j_query = degree_2_query(interface_query, node_path, edge_path)
+                                else:
+                                    logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
+                                    neo4j_query = degree_2_query(interface_query, node_path, edge_path)
+                                logger.info(neo4j_query)
+                                result = driver_session.run(neo4j_query)
+                                entire_result = []  # Will contain all the items
+                                for record in result:
+                                    entire_result.append(record)
+                                # copy files to correct EFS location and s3 locations
+                                source_node_path = neo4j_import_listener + '/' + node_path
+                                target_node_path = user_query_result_dir + '/' + node_path
 
-                                with mag_driver.session() as session:
-                                    if degree == 1:
-                                        neo4j_query = degree_1_query(interface_query, node_path, edge_path)
-                                    elif degree == 2:
-                                        neo4j_query = degree_2_query(interface_query, node_path, edge_path)
-                                    else:
-                                        logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
-                                        neo4j_query = degree_2_query(interface_query, node_path, edge_path)
-                                    logger.info(neo4j_query)
-                                    result = session.run(neo4j_query)
-                                    entire_result = []  # Will contain all the items
-                                    for record in result:
-                                        entire_result.append(record)
-                                    # copy files to correct EFS location and s3 locations
-                                    source_node_path = neo4j_import_listener + '/' + node_path
-                                    target_node_path = user_query_result_dir + '/' + node_path
-
-                                    logger.info(source_node_path)
-                                    logger.info(target_node_path)
-                                    copyfile(source_node_path, target_node_path)
-                                    source_edge_path = neo4j_import_listener + '/' + edge_path
-                                    target_edge_path = user_query_result_dir + '/' + edge_path
-                                    logger.info(source_edge_path)
-                                    logger.info(target_edge_path)
-                                    copyfile(source_edge_path, target_edge_path)
-                                    session.commit()
+                                logger.info(source_node_path)
+                                logger.info(target_node_path)
+                                copyfile(source_node_path, target_node_path)
+                                source_edge_path = neo4j_import_listener + '/' + edge_path
+                                target_edge_path = user_query_result_dir + '/' + edge_path
+                                logger.info(source_edge_path)
+                                logger.info(target_edge_path)
+                                copyfile(source_edge_path, target_edge_path)
+                                driver_session.commit()
                             else:
                                 network_enabled = False
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
@@ -391,7 +390,7 @@ def poll_queue():
                     wos_cursor.close()
                     mag_cursor.close()
                     meta_db_cursor.close()
-                    mag_driver.close()
+                    driver_session.close()
                     # Use this method to release the connection object and send back ti connection pool
                     wos_connection_pool.putconn(wos_connection)
                     mag_connection_pool.putconn(mag_connection)
