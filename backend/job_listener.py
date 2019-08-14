@@ -361,6 +361,7 @@ def poll_queue():
                                     logger.info(source_edge_path)
                                     logger.info(target_edge_path)
                                     copyfile(source_edge_path, target_edge_path)
+                                    session.commit()
                             else:
                                 network_enabled = False
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
