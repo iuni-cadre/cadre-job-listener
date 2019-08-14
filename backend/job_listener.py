@@ -283,11 +283,10 @@ def poll_queue():
                             output_filters_single.append('paper_id')
                     output_filter_string = ",".join(output_filters_single)
                     # Updating the job status in the job database as running
-                    print("Job ID: " + job_id)
+                    logger.info(network_query_type)
                     updateStatement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
-                    print(meta_connection.get_dsn_parameters())
                     meta_connection.commit()
                     s3_client = boto3.resource('s3',
                                                aws_access_key_id=util.config_reader.get_aws_access_key(),
@@ -305,7 +304,7 @@ def poll_queue():
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
                         shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
-                        csv_path =  user_query_result_dir + '/' + job_id + '.csv'
+                        csv_path = user_query_result_dir + '/' + job_id + '.csv'
                         node_path = job_id + '_nodes.csv'
                         edge_path = job_id + '_edges.csv'
                         logger.info(csv_path)
@@ -329,9 +328,11 @@ def poll_queue():
                         else:
                             logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citations':
+                                logger.info('citations')
                                 network_enabled = True
                                 output_filters_single.append('paper_id')
                                 output_filter_string = ",".join(output_filters_single)
+                                logger.info(output_filter_string)
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
 
