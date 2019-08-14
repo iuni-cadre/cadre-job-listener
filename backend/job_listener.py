@@ -186,7 +186,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
 
-    interface_query = interface_query + 'LIMIT' + ' ' + '100'
+    interface_query = interface_query + 'LIMIT' + ' ' + '10000'
     print("Query: " + interface_query)
     return interface_query
 
@@ -337,7 +337,7 @@ def poll_queue():
                                         logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                         neo4j_query = degree_2_query(interface_query, node_path, edge_path)
                                     logger.info(neo4j_query)
-                                    session.run(neo4j_query)
+                                    result = session.run(neo4j_query)
                                     # copy files to correct EFS location and s3 locations
                                     source_node_path = neo4j_import_listener + '/' + node_path
                                     target_node_path = user_query_result_dir + '/' + node_path
