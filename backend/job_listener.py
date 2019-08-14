@@ -338,6 +338,9 @@ def poll_queue():
                                         neo4j_query = degree_2_query(interface_query, node_path, edge_path)
                                     logger.info(neo4j_query)
                                     result = session.run(neo4j_query)
+                                    entire_result = []  # Will contain all the items
+                                    for record in result:
+                                        entire_result.append(record)
                                     # copy files to correct EFS location and s3 locations
                                     source_node_path = neo4j_import_listener + '/' + node_path
                                     target_node_path = user_query_result_dir + '/' + node_path
@@ -379,6 +382,7 @@ def poll_queue():
                     wos_cursor.close()
                     mag_cursor.close()
                     meta_db_cursor.close()
+                    mag_driver.close()
                     # Use this method to release the connection object and send back ti connection pool
                     wos_connection_pool.putconn(wos_connection)
                     mag_connection_pool.putconn(mag_connection)
