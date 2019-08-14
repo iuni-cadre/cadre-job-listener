@@ -295,10 +295,11 @@ def poll_queue():
                         efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
                         neo4j_import_datasets = util.config_reader.get_mag_graph_db_import_dir()
                         neo4j_import_listener = util.config_reader.get_cadre_efs_root_neo4j_output_listener()
-                        user_query_result_dir = efs_root + '/' + username + '/query-results/'
+                        user_query_result_dir = efs_root + '/' + username + '/query-results'
+                        shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
-                        csv_path = job_id + '.csv'
+                        csv_path =  user_query_result_dir + '/' + job_id + '.csv'
                         node_path = job_id + '_nodes.csv'
                         edge_path = job_id + '_edges.csv'
                         logger.info(csv_path)
@@ -340,7 +341,7 @@ def poll_queue():
                                     # copy files to correct EFS location and s3 locations
                                     source_node_path = neo4j_import_listener + '/' + node_path
                                     target_node_path = user_query_result_dir + '/' + node_path
-                                    shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
+
                                     logger.info(source_node_path)
                                     logger.info(target_node_path)
                                     copyfile(source_node_path, target_node_path)
