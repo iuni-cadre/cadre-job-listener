@@ -333,6 +333,7 @@ def poll_queue():
                                 output_filters_single.append('paper_id')
                                 output_filter_string = ",".join(output_filters_single)
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
+                                logger.info(interface_query)
 
                                 with mag_driver.session() as session:
                                     if degree == 1:
