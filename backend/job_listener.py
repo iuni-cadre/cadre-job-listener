@@ -336,8 +336,14 @@ def poll_queue():
                                     logger.info(neo4j_query)
                                     session.run(neo4j_query)
                                     # copy files to correct EFS location and s3 locations
-                                    copyfile(neo4j_import + '/' + node_path, user_query_result_dir + '/' + node_path)
-                                    copyfile(neo4j_import + '/' + edge_path, user_query_result_dir + '/' + edge_path)
+                                    source_node_path = neo4j_import + '/' + node_path
+                                    target_node_path = user_query_result_dir + '/' + node_path
+                                    logger.info(source_node_path)
+                                    logger.info(target_node_path)
+                                    copyfile(source_node_path, target_node_path)
+                                    source_edge_path = neo4j_import + '/' + edge_path
+                                    target_edge_path = user_query_result_dir + '/' + edge_path
+                                    copyfile(source_edge_path, target_edge_path)
                             else:
                                 network_enabled = False
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
