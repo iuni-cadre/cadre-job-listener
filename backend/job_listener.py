@@ -131,7 +131,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                         value = "'{}'".format(value)
                         if network_enabled:
                             value = value.replace("'", "\\'")
-                        print("Year: " + value)
+                        logger.info("Year: " + value)
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
                         # year_operands.append(operand)
@@ -143,11 +143,11 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = "'{}'".format(value)
                     if network_enabled:
                         value = value.replace("'", "\\'")
-                    print("Journals Name: " + value)
+                    logger.info("Journals Name: " + value)
                     interface_query += ' journal_display_name iLIKE {} '.format(value) + operand
                     # journals.append(value)
                     # journal_operands.append(operand)
-            elif field == 'book_title':
+            elif field == 'authors_display_name':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
@@ -155,8 +155,8 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = "'{}'".format(value)
                     if network_enabled:
                         value = value.replace("'", "\\'")
-                    logger.info('Book Title: ' + value)
-                    interface_query += ' book_title iLIKE {} '.format(value) + operand
+                    logger.info('Authors Name: ' + value)
+                    interface_query += ' authors_display_name iLIKE {} '.format(value) + operand
             elif field == 'doi':
                 if value is not None:
                     value = value.strip()
@@ -175,7 +175,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = "'{}'".format(value)
                     if network_enabled:
                         value = value.replace("'", "\\'")
-                    logger.info('conferenceDisplayName: ' + value)
+                    logger.info('Conference Display Name: ' + value)
                     interface_query += ' conference_display_name iLIKE {} '.format(value) + operand
             elif field == 'paper_title':
                 if value is not None:
@@ -185,9 +185,19 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     value = "'{}'".format(value)
                     if network_enabled:
                         value = value.replace("'", "\\'")
-                    print("Title: " + value)
+                    logger.info("Title: " + value)
                     interface_query += ' paper_title_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # authors.append(value)
+            elif field == 'paper_abstract':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = value.replace("'", "\\'")
+                    logger.info("Paper Abstract: " + value)
+                    interface_query += ' paper_abstract_tsv @@ to_tsquery ({}) '.format(value) + operand
 
     if network_enabled:
         interface_query = interface_query + 'LIMIT' + ' ' + '1000'
