@@ -160,8 +160,17 @@ def poll_queue():
                     package_id = query_json['package_id']
                     username = query_json['username']
                     output_file_names = query_json['output_filename']
-                    package_name = query_json['name']
                     logger.info("Job ID: " + job_id)
+
+                    # Getting the package name from the package table in the cadre metadatabase
+                    get_package_name = "SELECT * FROM package WHERE package_id=%s"
+                    meta_db_cursor.execute(get_package_name, (package_id,))
+
+                    if meta_db_cursor.rowcount > 0:
+                        package_info = meta_db_cursor.fetchone()
+                        package_name = package_info[5]
+                        logger.info(package_name)
+
                     update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
