@@ -210,7 +210,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
         interface_query = interface_query + 'LIMIT' + ' ' + '1000'
     else:
         interface_query = interface_query + 'LIMIT' + ' ' + '10000'
-    print("Query: " + interface_query)
+    logger.info("Query: " + interface_query)
     return interface_query
 
 
@@ -226,9 +226,9 @@ def convert_csv_to_json(csv_path, json_path, output_filter_string):
 
 
 def degree_0_query(interface_query, csv_file_name):
-    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
-                  " '" + interface_query + \
-                  "') YIELD row RETURN row.paper_id AS paper_id, " \
+    neo4j_query = "CALL apoc.export.csv.query('CALL apoc.load.jdbc(\\'postgresql_url\\'," \
+                  " \"" + interface_query + \
+                  "\") YIELD row RETURN row.paper_id AS paper_id, " \
                   "row.author_id AS author_id," \
                   "row.author_sequence_number AS author_sequence_number," \
                   "row.authors_display_name AS authors_display_name," \
@@ -256,38 +256,42 @@ def degree_0_query(interface_query, csv_file_name):
                   "row.conference_display_name AS conference_display_name," \
                   "row.journal_display_name AS journal_display_name," \
                   "row.journal_issn AS journal_issn," \
-                  "row.journal_publisher AS journal_publisher, '" + csv_file_name + "',"\
-                  "{d:';',quotes: false, format: 'plain'})"
+                  "row.journal_publisher AS journal_publisher', '" + csv_file_name + "',"\
+                  "{format: 'plain'})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
 def get_edge_list_degree_1(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
     logger.info(csv_file_name)
-    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM '" + csv_file_name + "'" \
-                  "AS pg_app MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
-                  "RETURN n.paper_id AS From , m.paper_id AS To'," + edge_file_name + "', {batchSize:100})"
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
+                  "RETURN n.paper_id AS From , m.paper_id AS To','" + edge_file_name + "', {})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
 def get_edge_list_degree_2(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
     logger.info(csv_file_name)
-    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM '" + csv_file_name + "'" \
-                  "AS pg_app MATCH(n:paper{paper_id:pg_pap.'paper_id'}) <- [:REFERENCES]-(m:paper) " \
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
                   "RETURN n.paper_id AS From , m.paper_id AS To UNION ALL " \
-                  "LOAD CSV WITH HEADERS FROM '" + csv_file_name + "'as pg_pap " \
+                  "LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\' as pg_pap " \
                   "MATCH (n:paper{paper_id:pg_pap.`paper_id`})<-[:REFERENCES]-(m:paper)<-[:REFERENCES]-(o:paper) "\
-                  "RETURN m.paper_id AS From, o.paper_id AS To'," + edge_file_name + ",{})"
+                  "RETURN m.paper_id AS From, o.paper_id AS To','" + edge_file_name + "',{})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
 def get_node_list(edge_file_name, node_file_name):
     edge_file_name = "file:///" + edge_file_name
     logger.info(edge_file_name)
-    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM '" + edge_file_name + "'" \
-                  "AS edge MATCH(n:paper) WHERE n.paper_id IN [edge.`From`, edge.`To`] " \
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
+                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`From`, edge.`To`] " \
                   "RETURN DISTINCT(n.paper_id) AS paper_id," \
+                  "n.date AS date,"\
                   "n.journal_id AS journal_id,"\
                   "n.citation_count AS citation_count,"\
                   "n.original_title AS original_title,"\
@@ -307,7 +311,8 @@ def get_node_list(edge_file_name, node_file_name):
                   "n.created_date AS created_date,"\
                   "n.reference_count AS reference_count,"\
                   "n.conference_series_id AS conference_series_id,"\
-                  "n.doi AS doi,'" + node_file_name + "', {})"
+                  "n.doi AS doi','" + node_file_name + "', {})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
@@ -407,13 +412,14 @@ def poll_queue():
                         user_query_result_dir = efs_root + '/' + username + '/query-results'
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
-                        shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
+                        # shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
                         csv_path = user_query_result_dir + '/' + job_id + '.csv'
-                        csv_name = + job_id + '.csv'
+                        logger.info(csv_path)
+                        csv_name = job_id + '.csv'
                         node_path = job_id + '_nodes.csv'
                         edge_path = job_id + '_edges.csv'
-                        logger.info(csv_path)
-                        logger.info(dataset)
+                        logger.info(node_path)
+                        logger.info(edge_path)
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'citations':
@@ -458,7 +464,7 @@ def poll_queue():
                                         node_result_degree_1.append(record)
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name)
-                                    logger.info(degree_0_query())
+                                    logger.info(degree_0_q)
                                     edge_query = get_edge_list_degree_2(csv_name, edge_path)
                                     logger.info(edge_query)
                                     node_query = get_node_list(edge_path, node_path)
