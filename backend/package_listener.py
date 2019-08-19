@@ -160,6 +160,7 @@ def poll_queue():
                     package_id = query_json['package_id']
                     username = query_json['username']
                     output_file_names = query_json['output_filename']
+                    package_name = query_json['name']
                     logger.info("Job ID: " + job_id)
                     update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
@@ -170,9 +171,9 @@ def poll_queue():
                                                aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
                                                region_name=util.config_reader.get_aws_region())
                     root_bucket_name = 'cadre-query-result'
-                    bucket_location = username + '/packages/' + package_id + '/'
+                    bucket_location = username + '/packages/' + package_name + '/'
                     efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
-                    user_package_run_dir = efs_root + '/' + username + '/packages/' + package_id
+                    user_package_run_dir = efs_root + '/' + username + '/packages/' + package_name
                     if not os.path.exists(user_package_run_dir):
                         os.makedirs(user_package_run_dir)
 
@@ -190,12 +191,14 @@ def poll_queue():
                             s3_archive_folder = s3_location_root[len(s3_archive_root) + 2:]
                             logger.info(s3_archive_folder)
                             s3_file_name = input_file[1]
-                            input_copy = user_package_run_dir + '/' + s3_file_name
+                            input_dir = user_package_run_dir + '/input_files/' + s3_file_name
+                            if not os.path.exists(input_dir):
+                                os.makedirs(input_dir)
                             # download file from s3 and copy it to package_run dir in efs
                             folder_path = s3_archive_folder + '/' + s3_file_name
                             logger.info(folder_path)
-                            s3_client.meta.client.download_file(s3_archive_root, folder_path, input_copy)
-                            input_file_list.append(input_copy)
+                            s3_client.meta.client.download_file(s3_archive_root, folder_path, input_dir)
+                            input_file_list.append(input_dir)
 
                     # get tool info
                     get_tool_q = "SELECT  t.name, t.tool_id, t.command, t.script_name FROM tool t, package p WHERE p.tool_id =t.tool_id AND p.package_id=%s"
@@ -208,7 +211,7 @@ def poll_queue():
                         tool_id = tool_info[1]
                         command = tool_info[2]
                         script_name = tool_info[3]
-                        user_tool_dir = efs_root + '/' + username + '/tools/' + tool_id
+                        user_tool_dir = efs_root + '/' + username + user_package_run_dir + '/tools/' + tool_name
                         if not os.path.exists(user_tool_dir):
                             os.makedirs(user_tool_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
@@ -216,10 +219,12 @@ def poll_queue():
                     try:
                         for output_file in output_file_names:
                             output_file = output_file.replace(" ", "")
-                            ouptut_path = user_package_run_dir + '/' + output_file
-                            logger.info(ouptut_path)
-                            # convert_csv_to_json(ouptut_path, json_path, output_filter_string)
-                            s3_client.meta.client.upload_file(ouptut_path, root_bucket_name,
+                            output_dir = user_package_run_dir + '/output_files/' + output_file
+                            if not os.path.exists(output_dir):
+                                os.makedirs(output_dir)
+                            logger.info(output_dir)
+                            # convert_csv_to_json(output_dir, json_path, output_filter_string)
+                            s3_client.meta.client.upload_file(output_dir, root_bucket_name,
                                                               bucket_location + output_file)
                     except:
                         print("Job ID: " + job_id)
