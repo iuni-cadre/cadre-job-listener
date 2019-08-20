@@ -280,7 +280,7 @@ def get_edge_list_degree_2(csv_file_name, edge_file_name, job_id):
     data2 = job_id + '2'
 
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
-                  " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
+                  " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
                   "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS " + data1 + "," \
                   " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS " + data2 +  \
                   "  UNWIND (" + data1 + "+" + data2 + ") AS " + job_id + \
