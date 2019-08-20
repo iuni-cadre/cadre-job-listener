@@ -200,14 +200,15 @@ def poll_queue():
                             s3_archive_folder = s3_location_root[len(s3_archive_root) + 2:]
                             logger.info(s3_archive_folder)
                             s3_file_name = input_file[1]
-                            input_dir = user_package_run_dir + '/input_files/' + s3_file_name
+                            input_dir = user_package_run_dir + '/input_files/'
+                            input_copy = input_dir + s3_file_name
                             if not os.path.exists(input_dir):
                                 os.makedirs(input_dir)
                             # download file from s3 and copy it to package_run dir in efs
                             folder_path = s3_archive_folder + '/' + s3_file_name
                             logger.info(folder_path)
-                            s3_client.meta.client.download_file(s3_archive_root, folder_path, input_dir)
-                            input_file_list.append(input_dir)
+                            s3_client.meta.client.download_file(s3_archive_root, folder_path, input_copy)
+                            input_file_list.append(input_copy)
 
                     # get tool info
                     get_tool_q = "SELECT  t.name, t.tool_id, t.command, t.script_name FROM tool t, package p WHERE p.tool_id =t.tool_id AND p.package_id=%s"
@@ -220,20 +221,21 @@ def poll_queue():
                         tool_id = tool_info[1]
                         command = tool_info[2]
                         script_name = tool_info[3]
-                        user_tool_dir = efs_root + '/' + username + user_package_run_dir + '/tools/' + tool_name
+                        user_tool_dir = user_package_run_dir + '/tools/' + tool_name
                         if not os.path.exists(user_tool_dir):
                             os.makedirs(user_tool_dir)
+                        output_dir = user_package_run_dir + '/output_files/'
+                        if not os.path.exists(output_dir):
+                            os.makedirs(output_dir)
+                        logger.info(output_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, output_file_names, user_package_run_dir)
+                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, output_file_names, output_dir)
                     try:
                         for output_file in output_file_names:
                             output_file = output_file.replace(" ", "")
-                            output_dir = user_package_run_dir + '/output_files/' + output_file
-                            if not os.path.exists(output_dir):
-                                os.makedirs(output_dir)
-                            logger.info(output_dir)
+                            output_path = output_dir + output_file
                             # convert_csv_to_json(output_dir, json_path, output_filter_string)
-                            s3_client.meta.client.upload_file(output_dir, root_bucket_name,
+                            s3_client.meta.client.upload_file(output_path, root_bucket_name,
                                                               bucket_location + output_file)
                     except:
                         print("Job ID: " + job_id)
