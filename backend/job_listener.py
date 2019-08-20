@@ -464,7 +464,7 @@ def poll_queue():
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name)
                                     logger.info(degree_0_q)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path, job_id)
+                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
                                     logger.info(edge_query)
                                     node_query = get_node_list(edge_path, node_path)
                                     logger.info(node_query)
@@ -483,7 +483,7 @@ def poll_queue():
                                 else:
                                     logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                     degree_0_q = degree_0_query(interface_query, csv_name)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path, job_id)
+                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
                                     node_query = get_node_list(edge_path, node_path)
                                     degree_0_results = driver_session.run(degree_0_q)
                                     edge_result = driver_session.run(edge_query)
