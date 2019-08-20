@@ -90,7 +90,7 @@ def download_s3_dir(client, bucket, path, target):
                 client.meta.client.download_file(bucket, key['Key'], local_file_path)
 
 
-def run_docker_script(input_file_list, docker_path, tool_name, command, script_name, output_files, volume):
+def run_docker_script(input_file_list, docker_path, tool_name, command, script_name, output_files, volume, output_location):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
     tool_name = tool_name.replace(" ", "")
     # We are building the docker image from the dockerfile here
@@ -102,7 +102,7 @@ def run_docker_script(input_file_list, docker_path, tool_name, command, script_n
     output_names = output_names.replace(" ", "")
     command_list.append(shared_inputs_as_string)
     command_list.append(output_names)
-    command_list.append(volume)
+    command_list.append(output_location)
     logger.info(command_list)
 
     container = client.containers.run(tool_name,
@@ -229,7 +229,7 @@ def poll_queue():
                             os.makedirs(output_dir)
                         logger.info(output_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, output_file_names, output_dir)
+                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, output_file_names, user_package_run_dir, output_dir)
                     try:
                         for output_file in output_file_names:
                             output_file = output_file.replace(" ", "")
