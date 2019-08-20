@@ -272,15 +272,17 @@ def get_edge_list_degree_1(csv_file_name, edge_file_name):
     return neo4j_query
 
 
-def get_edge_list_degree_2(csv_file_name, edge_file_name):
+def get_edge_list_degree_2(csv_file_name, edge_file_name, job_id):
     csv_file_name = "file:///" + csv_file_name
     logger.info(csv_file_name)
+    data1 = job_id + '_1'
+    data2 = job_id + '_2'
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
                   " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
-                  "RETURN n.paper_id AS From , m.paper_id AS To UNION ALL " \
-                  "LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\' as pg_pap " \
-                  "MATCH (n:paper{paper_id:pg_pap.`paper_id`})<-[:REFERENCES]-(m:paper)<-[:REFERENCES]-(o:paper) "\
-                  "RETURN m.paper_id AS From, o.paper_id AS To','" + edge_file_name + "',{})"
+                  "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS " + data1 + "," \
+                  " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS " + data2 +  \
+                  "  UNWIND (" + data1 + "+" + data2 + ") AS " + job_id + \
+                  " RETURN " + job_id + ".from AS FROM, " + job_id + ".to AS To','" + edge_file_name + "',{})"
     logger.info(neo4j_query)
     return neo4j_query
 
@@ -465,7 +467,7 @@ def poll_queue():
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name)
                                     logger.info(degree_0_q)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
+                                    edge_query = get_edge_list_degree_2(csv_name, edge_path, job_id)
                                     logger.info(edge_query)
                                     node_query = get_node_list(edge_path, node_path)
                                     logger.info(node_query)
@@ -484,7 +486,7 @@ def poll_queue():
                                 else:
                                     logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                     degree_0_q = degree_0_query(interface_query, csv_name)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
+                                    edge_query = get_edge_list_degree_2(csv_name, edge_path, job_id)
                                     node_query = get_node_list(edge_path, node_path)
                                     degree_0_results = driver_session.run(degree_0_q)
                                     edge_result = driver_session.run(edge_query)
