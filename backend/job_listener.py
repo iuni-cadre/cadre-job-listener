@@ -279,7 +279,7 @@ def get_edge_list_degree_2(csv_file_name, edge_file_name):
                   " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
                   "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
                   " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
-                  "  UNWIND (data1 + data2) AS data RETURN data.from AS FROM, data.to AS To','" + edge_file_name + "',{})"
+                  "  UNWIND (data1 + data2) AS data RETURN data.from AS From, data.to AS To','" + edge_file_name + "',{})"
     logger.info(neo4j_query)
     return neo4j_query
 
