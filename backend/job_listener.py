@@ -24,9 +24,9 @@ import util.config_reader
 from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
-logfile_path = cadre + "/cadre_job_listener.log"
-if path.isfile(logfile_path):
-    os.remove(logfile_path)
+# logfile_path = cadre + "/cadre_job_listener.log"
+# if path.isfile(logfile_path):
+#     os.remove(logfile_path)
 
 log_conf = conf + '/logging-job-conf.json'
 with open(log_conf, 'r') as logging_configuration_file:
