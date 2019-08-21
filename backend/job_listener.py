@@ -396,6 +396,11 @@ def poll_queue():
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     meta_connection.commit()
+                    # Delete received message from queue
+                    sqs_client.delete_message(
+                        QueueUrl=queue_url,
+                        ReceiptHandle=receipt_handle
+                    )
                     s3_client = boto3.resource('s3',
                                                aws_access_key_id=util.config_reader.get_aws_access_key(),
                                                aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
@@ -489,11 +494,7 @@ def poll_queue():
                                     degree_0_results = driver_session.run(degree_0_q)
                                     edge_result = driver_session.run(edge_query)
                                     node_result = driver_session.run(node_query)
-                                    # Delete received message from queue
-                                    sqs_client.delete_message(
-                                        QueueUrl=queue_url,
-                                        ReceiptHandle=receipt_handle
-                                    )
+
                                     logger.info('Received and deleted message: %s' % message)
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
