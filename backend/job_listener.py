@@ -207,7 +207,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     interface_query += ' paper_abstract_tsv @@ to_tsquery ({}) '.format(value) + operand
 
     if network_enabled:
-        interface_query = interface_query + 'LIMIT' + ' ' + '1000'
+        interface_query = interface_query + 'LIMIT' + ' ' + '10000'
     else:
         interface_query = interface_query + 'LIMIT' + ' ' + '10000'
     logger.info("Query: " + interface_query)
