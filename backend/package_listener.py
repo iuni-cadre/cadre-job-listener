@@ -119,8 +119,8 @@ def run_docker_script(input_file_list, docker_path, tool_name, command, script_n
     # print('The container has been removed successfully.')
 
     # Delete the docker image
-    client.images.remove(tool_name, force=True)
-    print('The image has been removed successfully.')
+    # client.images.remove(tool_name, force=True)
+    # print('The image has been removed successfully.')
 
     # Deleting the unused images
     # args = {"dangling": True}
