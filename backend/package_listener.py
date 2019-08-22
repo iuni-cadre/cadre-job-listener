@@ -166,6 +166,7 @@ def poll_queue():
                     get_package_name = "SELECT name FROM package WHERE package_id=%s"
                     meta_db_cursor.execute(get_package_name, (package_id,))
 
+                    package_name = package_id
                     if meta_db_cursor.rowcount > 0:
                         package_info = meta_db_cursor.fetchone()
                         package_name = package_info[0]
