@@ -49,6 +49,46 @@ sqs_client = boto3.client('sqs',
 
 queue_url = util.config_reader.get_job_queue_url()
 
+output_fileters_map = {
+    "author_sequence_number":"author_sequence_number::varchar",
+    "date":"date::varchar",
+    "paper_reference_count":"paper_reference_count::varchar",
+    "paper_citation_count":"paper_citation_count::varchar",
+    "paper_estimated_citation":"paper_estimated_citation::varchar"
+}
+
+degree_0_fields_map = {
+    "paper_id": "row.paper_id AS paper_id,",
+    "author_id": "row.author_id AS author_id,",
+    "author_sequence_number":"row.author_sequence_number AS author_sequence_number,",
+    "authors_display_name":"row.authors_display_name AS authors_display_name,",
+    "authors_last_known_affiliation_id":"row.authors_last_known_affiliation_id AS authors_last_known_affiliation_id,",
+    "journal_id": "row.journal AS journal_id,",
+    "conference_series_id": "row.conference_series_id AS conference_series_id,",
+    "conference_instance_id": "row.conference_instance_id AS conference_instance_id,",
+    "paper_reference_id": "row.paper_reference_id AS paper_reference_id,",
+    "field_of_study_id": "row.field_of_study_id AS field_of_study_id,",
+    "doi": "row.doi AS doi,",
+    "doc_type": "row.doc_type AS doc_type,",
+    "paper_title": "row.paper_title AS paper_title,",
+    "original_title": "row.original_title AS original_title,",
+    "book_title": "row.book_title AS book_title,",
+    "year": "row.year AS year,",
+    "date": "row.date AS date,",
+    "paper_publisher": "row.paper_publisher AS paper_publisher,",
+    "issue": "row.issue AS issue,",
+    "paper_abstract": "row.paper_abstract AS paper_abstract,",
+    "paper_first_page": "row.paper_first_page AS paper_first_page,",
+    "paper_last_page": "row.paper_last_page AS paper_last_page,",
+    "paper_reference_count": "row.paper_reference_count AS paper_reference_count,",
+    "paper_citation_count": "row.paper_citation_count AS paper_citation_count,",
+    "paper_estimated_citation": "row.paper_estimated_citation AS paper_estimated_citation,",
+    "conference_display_name": "row.conference_display_name AS conference_display_name,",
+    "journal_display_name": "row.journal_display_name AS journal_display_name,",
+    "journal_issn": "row.journal_issn AS journal_issn,",
+    "journal_publisher": "row.journal_publisher AS journal_publisher,",
+}
+
 
 def generate_wos_query(output_filter_string, query_json, network_enabled):
     interface_query = 'SELECT ' + output_filter_string + ' FROM wos_core.interface_table WHERE '
@@ -116,13 +156,13 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
 def generate_mag_query(output_filter_string, query_json, network_enabled):
     logger.info(output_filter_string)
     logger.info(query_json)
-    if network_enabled:
-        output_filter_string = "paper_id, author_id, author_sequence_number::varchar," \
-                  "authors_display_name,authors_last_known_affiliation_id,journal_id,conference_series_id,conference_instance_id,"\
-                  "paper_reference_id,field_of_study_id,doi,doc_type,paper_title,original_title,book_title,year,date::varchar,"\
-                  "paper_publisher,issue,paper_abstract,paper_first_page,paper_last_page,paper_reference_count::varchar,"\
-                  "paper_citation_count::varchar,paper_estimated_citation::varchar,conference_display_name,journal_display_name,"\
-                  "journal_issn,journal_publisher"
+    # if network_enabled:
+    #     output_filter_string = "paper_id, author_id, author_sequence_number::varchar," \
+    #               "authors_display_name,authors_last_known_affiliation_id,journal_id,conference_series_id,conference_instance_id,"\
+    #               "paper_reference_id,field_of_study_id,doi,doc_type,paper_title,original_title,book_title,year,date::varchar,"\
+    #               "paper_publisher,issue,paper_abstract,paper_first_page,paper_last_page,paper_reference_count::varchar,"\
+    #               "paper_citation_count::varchar,paper_estimated_citation::varchar,conference_display_name,journal_display_name,"\
+    #               "journal_issn,journal_publisher"
     interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.final_mag_interface_table WHERE '
     for item in query_json:
         if 'value' in item:
@@ -225,38 +265,10 @@ def convert_csv_to_json(csv_path, json_path, output_filter_string):
         jsonfile.write('\n')
 
 
-def degree_0_query(interface_query, csv_file_name):
+def degree_0_query(interface_query, csv_file_name, csv_field_names):
     neo4j_query = "CALL apoc.export.csv.query('CALL apoc.load.jdbc(\\'postgresql_url\\'," \
                   " \"" + interface_query + \
-                  "\") YIELD row RETURN row.paper_id AS paper_id, " \
-                  "row.author_id AS author_id," \
-                  "row.author_sequence_number AS author_sequence_number," \
-                  "row.authors_display_name AS authors_display_name," \
-                  "row.authors_last_known_affiliation_id AS authors_last_known_affiliation_id," \
-                  "row.journal AS journal_id," \
-                  "row.conference_series_id AS conference_series_id," \
-                  "row.conference_instance_id AS conference_instance_id," \
-                  "row.paper_reference_id AS paper_reference_id," \
-                  "row.field_of_study_id AS field_of_study_id," \
-                  "row.doi AS doi," \
-                  "row.doc_type AS doc_type," \
-                  "row.paper_title AS paper_title," \
-                  "row.original_title AS original_title," \
-                  "row.book_title AS book_title," \
-                  "row.year AS year," \
-                  "row.date AS date," \
-                  "row.paper_publisher AS paper_publisher," \
-                  "row.issue AS issue," \
-                  "row.paper_abstract AS paper_abstract," \
-                  "row.paper_first_page AS paper_first_page," \
-                  "row.paper_last_page AS paper_last_page," \
-                  "row.paper_reference_count AS paper_reference_count," \
-                  "row.paper_citation_count AS paper_citation_count," \
-                  "row.paper_estimated_citation AS paper_estimated_citation," \
-                  "row.conference_display_name AS conference_display_name," \
-                  "row.journal_display_name AS journal_display_name," \
-                  "row.journal_issn AS journal_issn," \
-                  "row.journal_publisher AS journal_publisher', '" + csv_file_name + "',"\
+                  "\") YIELD row RETURN " + csv_field_names + "', '" + csv_file_name + "',"\
                   "{format: 'plain'})"
     logger.info(neo4j_query)
     return neo4j_query
@@ -337,6 +349,27 @@ def degree_2_query(interface_query, node_file_name, edge_file_name):
     return neo4j_query
 
 
+def generate_output_string_neo4j(output_filters):
+    logger.info(output_filters)
+    for output in output_filters:
+        logger.info(output)
+        if output in output_fileters_map:
+            output_filters.remove(output)
+            output_filters.append(output_fileters_map[output])
+    output_string = ",".join(output_filters)
+    logger.info(output_string)
+    return output_string
+
+
+def generate_csv_fields_neo4j(output_filters):
+    output_string = ''
+    for output in output_filters:
+        output_string += degree_0_fields_map[output]
+    output_string = output_string[:-1]
+    logger.info(output_string)
+    return output_string
+
+
 def poll_queue():
     while True:
         # Receive message from SQS queue
@@ -388,7 +421,8 @@ def poll_queue():
                         else:
                             network_query_type = output_filed['field']
                             degree = int(output_filed['degree'])
-                            output_filters_single.append('paper_id')
+                            if 'paper_id' not in output_filters_single:
+                                output_filters_single.append('paper_id')
                     output_filter_string = ",".join(output_filters_single)
                     # Updating the job status in the job database as running
                     logger.info(network_query_type)
@@ -396,11 +430,6 @@ def poll_queue():
                     # Execute the SQL Query
                     meta_db_cursor.execute(updateStatement, (job_id,))
                     meta_connection.commit()
-                    # Delete received message from queue
-                    sqs_client.delete_message(
-                        QueueUrl=queue_url,
-                        ReceiptHandle=receipt_handle
-                    )
                     s3_client = boto3.resource('s3',
                                                aws_access_key_id=util.config_reader.get_aws_access_key(),
                                                aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
@@ -445,13 +474,16 @@ def poll_queue():
                             if network_query_type == 'citations':
                                 logger.info('citations')
                                 network_enabled = True
-                                output_filters_single.append('paper_id')
-                                output_filter_string = ",".join(output_filters_single)
+                                if 'paper_id' not in output_filters_single:
+                                    output_filters_single.append('paper_id')
+                                # generate output filter string for neo4j
+                                output_filter_string = generate_output_string_neo4j(output_filters_single)
                                 logger.info(output_filter_string)
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
+                                degree_0_field_names = generate_csv_fields_neo4j(output_filters_single)
                                 if degree == 1:
-                                    degree_0_q = degree_0_query(interface_query, csv_name)
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
                                     edge_query = get_edge_list_degree_1(csv_name, edge_path)
                                     node_query = get_node_list(edge_path, node_path)
                                     degree_0_results = driver_session.run(degree_0_q)
@@ -468,7 +500,7 @@ def poll_queue():
                                     for record in node_result_degree_1:
                                         node_result_degree_1.append(record)
                                 elif degree == 2:
-                                    degree_0_q = degree_0_query(interface_query, csv_name)
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
                                     logger.info(degree_0_q)
                                     edge_query = get_edge_list_degree_2(csv_name, edge_path)
                                     logger.info(edge_query)
@@ -488,14 +520,13 @@ def poll_queue():
                                         node_result_degree_1.append(record)
                                 else:
                                     logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
-                                    degree_0_q = degree_0_query(interface_query, csv_name)
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
                                     edge_query = get_edge_list_degree_2(csv_name, edge_path)
                                     node_query = get_node_list(edge_path, node_path)
                                     degree_0_results = driver_session.run(degree_0_q)
                                     edge_result = driver_session.run(edge_query)
                                     node_result = driver_session.run(node_query)
 
-                                    logger.info('Received and deleted message: %s' % message)
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
