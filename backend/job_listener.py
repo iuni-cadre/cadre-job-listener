@@ -413,6 +413,12 @@ def poll_queue():
                     username = query_json['username']
                     output_fields = query_json['output']
 
+                    # Delete received message from queue
+                    sqs_client.delete_message(
+                        QueueUrl=queue_url,
+                        ReceiptHandle=receipt_handle
+                    )
+
                     for output_filed in output_fields:
                         type = output_filed['type']
                         if type == 'single':
@@ -437,11 +443,7 @@ def poll_queue():
                     root_bucket_name = 'cadre-query-result'
                     bucket_location = username + '/query-results/'
 
-                    # Delete received message from queue
-                    sqs_client.delete_message(
-                        QueueUrl=queue_url,
-                        ReceiptHandle=receipt_handle
-                    )
+
 
                     # Generating the Query that needs to run on the RDS
                     try:
