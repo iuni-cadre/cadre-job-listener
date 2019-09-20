@@ -1,4 +1,5 @@
-import backend.sqs_listener
+import backend.job_listener
 
 if __name__ == '__main__':
-    backend.sqs_listener.poll_queue()
+    backend.job_listener.poll_queue()
+
