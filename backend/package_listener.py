@@ -106,11 +106,16 @@ def id_generator(size=12, chars=string.ascii_lowercase + string.digits):
 
 def kube_create_job_object(name,
                            container_image,
+                           container_tag,
                            namespace="jhub",
                            container_name="packagecontainer",
+                           commad='command',
+                           script_name='script_name',
                            env_vars={},
                            input_file_list={},
-                           output_file_list={}):
+                           output_file_list={},
+                           volume_full_path="",
+                           volume_subpath=""):
     """
     Create a k8 Job Object
     Minimum definition of a job object:
@@ -150,7 +155,7 @@ def kube_create_job_object(name,
     for env_name, env_value in env_vars.items():
         env_list.append(client.V1EnvVar(name=env_name, value=env_value))
 
-    shared_volume = '/home/ubuntu/efs/home/cadre-query-results/chathuri'
+    shared_volume = volume_full_path
     shared_volume_in_pod = '/data'
     # input_dir = shared_volume + '/input'
     # if not os.path.exists(input_dir):
@@ -164,50 +169,46 @@ def kube_create_job_object(name,
     outputString = ",".join(output_file_list)
     print(outputString)
 
-    command_list = ["python", "helloworld.py"]
+    command_list = [commad, script_name]
     shared_inputs = []
     for inputFile in input_file_list:
         file_name = ntpath.basename(inputFile)
-        file_name_for_image = shared_volume + '/' + file_name
-        copyfile(inputFile, file_name_for_image)
         shared_inputs.append(shared_volume_in_pod + '/' + file_name)
     shared_inputs_as_string = ",".join(shared_inputs)
     output_names = ",".join(output_file_list)
     args = [shared_inputs_as_string, output_names, shared_volume_in_pod]
-    # args.append(shared_inputs_as_string)
-    # args.append(output_names)
-    # args.append(shared_volume)
-    print(args)
+    logger.info(args)
 
     pod = client.V1Pod()
-    pod.metadata = client.V1ObjectMeta(name="line-count")
+    pod.metadata = client.V1ObjectMeta(name=container_name)
     hostpathvolumesource = client.V1HostPathVolumeSource(path=shared_volume, type='DirectoryOrCreate')
     volume_spec = client.V1PersistentVolumeSpec(storage_class_name='', volume_mode='Filesystem',
                                                 access_modes=['ReadWriteMany'], host_path=hostpathvolumesource,
                                                 capacity={'storage': '2Gi'})
-    pv_meta = client.V1ObjectMeta(name='cadre-query-results')
+    pv_meta = client.V1ObjectMeta(name=util.config_reader.get_cadre_pv_name())
     persistent_volume = client.V1PersistentVolume(metadata=pv_meta, api_version='v1', kind='PersistentVolume',
                                                   spec=volume_spec)
     resource_requirements = client.V1ResourceRequirements(limits={'cpu': 2, 'memory': '80Mi', 'storage': '2Gi'},
                                                           requests={'cpu': 1, 'memory': '40Mi', 'storage': '1Gi'})
     claim_spec = client.V1PersistentVolumeClaimSpec(storage_class_name='', access_modes=['ReadWriteMany'],
                                                     resources=resource_requirements)
-    pvc_meta = client.V1ObjectMeta(name='efs')
+    pvc_meta = client.V1ObjectMeta(name=util.config_reader.get_cadre_pvc_name())
     persistent_volume_claim = client.V1PersistentVolumeClaim(api_version='v1', metadata=pvc_meta,
                                                              kind='PersistentVolumeClaim', spec=claim_spec)
-    claim_volume_source = client.V1PersistentVolumeClaimVolumeSource(claim_name='efs')
-    volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name='cadre-query-results', sub_path='home/cadre-query-results/chathuri')]
+    claim_volume_source = client.V1PersistentVolumeClaimVolumeSource(claim_name=util.config_reader.get_cadre_pvc_name())
+    volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name=util.config_reader.get_cadre_pv_name(), sub_path=volume_subpath)]
 
+    image_with_tag = container_name + ":" + container_tag
     container = client.V1Container(name=container_name,
-                                   image=container_image,
+                                   image=image_with_tag,
                                    env=env_list,
                                    command=command_list,
                                    args=args,
-                                   image_pull_policy='Always')
+                                   image_pull_policy='IfNotPresent')
 
     container.volume_mounts = volume_mounts
     spec = client.V1PodSpec(containers=[container], restart_policy='Never')
-    volume = client.V1Volume(name='cadre-query-results', persistent_volume_claim=claim_volume_source)
+    volume = client.V1Volume(name=util.config_reader.get_cadre_pv_name(), persistent_volume_claim=claim_volume_source)
     spec.volumes = [volume]
     # And finaly we can create our V1JobSpec!
     pod.spec = spec
@@ -215,27 +216,19 @@ def kube_create_job_object(name,
     return pod
 
 
-def run_docker_script(input_file_list, docker_path, tool_name, command, script_name, output_files, volume, output_location):
+def upload_image_dockerhub(docker_path,
+                           tool_name,
+                           package_id):
     client = docker.DockerClient(base_url='unix://var/run/docker.sock')
     tool_name = tool_name.replace(" ", "")
     # We are building the docker image from the dockerfile here
     client.images.build(path=docker_path, tag=tool_name, forcerm=True)
     image = client.images.get(tool_name)
-    image.tag('cadreit/packages', tag='latest')
-    auth_config_payload = {'username': 'cadreit', 'password': ''}
-    for line in client.images.push('chathuri/cadre-packages', stream=True, decode=True,auth_config=auth_config_payload):
+    docker_repo = util.config_reader.get_cadre_dockerhub_repo()
+    image.tag(docker_repo, tag=package_id)
+    auth_config_payload = {'username': util.config_reader.get_cadre_dockerhub_username(), 'password': util.config_reader.get_cadre_dockerhub_pwd()}
+    for line in client.images.push(docker_repo, stream=True, decode=True,auth_config=auth_config_payload):
         print(line)
-
-    job_name = id_generator()
-    image_name = ''
-
-    body = kube_create_job_object(job_name, image_name, env_vars={"VAR": "TESTING"}, input_file_list=input_file_list,
-                                  output_file_list=output_files)
-    try:
-        api_response = api_instance.create_namespaced_pod("jhub", body, pretty=True)
-        print(api_response)
-    except ApiException as e:
-        print("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
 
     logger.info("The image has been built successfully. ")
     command_list = [command, script_name]
@@ -249,7 +242,7 @@ def run_docker_script(input_file_list, docker_path, tool_name, command, script_n
 
     container = client.containers.run(tool_name,
                                       detach=True,
-                                      volumes={volume: {'bind': volume, 'mode': 'rw'}},
+                                      volumes={volume_full_path: {'bind': volume_full_path, 'mode': 'rw'}},
                                       command=command_list,
                                       remove=True)
 
@@ -325,7 +318,9 @@ def poll_queue():
                     root_bucket_name = 'cadre-query-result'
                     bucket_location = username + '/packages/' + package_name + '/'
                     efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
-                    user_package_run_dir = efs_root + '/' + username + '/packages/' + package_name
+                    efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
+                    efs_path = efs_root + efs_subpath
+                    user_package_run_dir = efs_path + '/' + username + '/packages/' + package_name
                     if not os.path.exists(user_package_run_dir):
                         os.makedirs(user_package_run_dir)
 
@@ -372,7 +367,27 @@ def poll_queue():
                             os.makedirs(output_dir)
                         logger.info(output_dir)
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        run_docker_script(input_file_list,user_tool_dir, tool_name, command, script_name, output_file_names, user_package_run_dir, output_dir)
+                        upload_image_dockerhub(user_tool_dir, tool_name, package_id)
+                        job_name = id_generator()
+                        image_name = docker_repo
+
+                        body = kube_create_job_object(job_name,
+                                                      image_name,
+                                                      package_id,
+                                                      util.config_reader.get_kebenetes_namespace(),
+                                                      tool_name,
+                                                      command,
+                                                      script_name,
+                                                      env_vars={"VAR": "TESTING"},
+                                                      input_file_list=input_file_list,
+                                                      output_file_list=output_file_names,
+                                                      volume_full_path=user_package_run_dir,
+                                                      volume_subpath=efs_subpath)
+                        try:
+                            api_response = api_instance.create_namespaced_pod("jhub", body, pretty=True)
+                            print(api_response)
+                        except ApiException as e:
+                            print("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
                     try:
                         for output_file in output_file_names:
                             output_file = output_file.replace(" ", "")

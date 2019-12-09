@@ -448,9 +448,11 @@ def poll_queue():
                     # Generating the Query that needs to run on the RDS
                     try:
                         efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
+                        efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
+                        efs_path = efs_root + efs_subpath
                         neo4j_import_datasets = util.config_reader.get_mag_graph_db_import_dir()
                         neo4j_import_listener = util.config_reader.get_cadre_efs_root_neo4j_output_listener()
-                        user_query_result_dir = efs_root + '/' + username + '/query-results'
+                        user_query_result_dir = efs_path + '/' + username + '/query-results'
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
                         # shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
@@ -501,11 +503,11 @@ def poll_queue():
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
 
-                                    for record in entire_result_degree_0:
+                                    for record in degree_0_results:
                                         entire_result_degree_0.append(record)
-                                    for record in edge_result_degree_1:
+                                    for record in edge_result:
                                         edge_result_degree_1.append(record)
-                                    for record in node_result_degree_1:
+                                    for record in node_result:
                                         node_result_degree_1.append(record)
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
@@ -520,11 +522,11 @@ def poll_queue():
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
-                                    for record in entire_result_degree_0:
+                                    for record in degree_0_results:
                                         entire_result_degree_0.append(record)
-                                    for record in edge_result_degree_1:
+                                    for record in edge_result:
                                         edge_result_degree_1.append(record)
-                                    for record in node_result_degree_1:
+                                    for record in node_result:
                                         node_result_degree_1.append(record)
                                 else:
                                     logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
@@ -539,11 +541,11 @@ def poll_queue():
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
 
-                                    for record in entire_result_degree_0:
+                                    for record in degree_0_results:
                                         entire_result_degree_0.append(record)
-                                    for record in edge_result_degree_1:
+                                    for record in edge_result:
                                         edge_result_degree_1.append(record)
-                                    for record in node_result_degree_1:
+                                    for record in node_result:
                                         node_result_degree_1.append(record)
                                 # copy files to correct EFS location and s3 locations
                                 source_csv_path = neo4j_import_listener + '/' + csv_name

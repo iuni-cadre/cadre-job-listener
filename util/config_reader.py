@@ -83,7 +83,7 @@ def get_package_queue_url():
 def get_tools_s3_root():
     try:
         config = get_cadre_config()
-        s3_root = config['AWS']['tools_s3_root']
+        s3_root = config['PACKAGES']['tools_s3_root']
         return s3_root
     except Exception as e:
         traceback.print_tb(e.__traceback__)
@@ -94,7 +94,7 @@ def get_tools_s3_root():
 def get_archive_s3_root():
     try:
         config = get_cadre_config()
-        s3_root = config['AWS']['archive_s3_root']
+        s3_root = config['PACKAGES']['archive_s3_root']
         return s3_root
     except Exception as e:
         traceback.print_tb(e.__traceback__)
@@ -321,11 +321,88 @@ def get_cadre_efs_root_query_results_listener():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_cadre_efs_subpath_query_results_listener():
+    try:
+        config = get_cadre_config()
+        efs_subpath = config['EFS']['efs-subpath-query-results-listener']
+        return efs_subpath
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
 def get_cadre_efs_root_neo4j_output_listener():
     try:
         config = get_cadre_config()
         efs_root_datasets = config['EFS']['efs-root-neo4j-import-listener']
         return efs_root_datasets
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_kebenetes_namespace():
+    try:
+        config = get_cadre_config()
+        kub_namespace = config['PACKAGES']['kub_namespace']
+        return kub_namespace
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_pv_name():
+    try:
+        config = get_cadre_config()
+        cadre_pv_name = config['PACKAGES']['cadre-pv-name']
+        return cadre_pv_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_pvc_name():
+    try:
+        config = get_cadre_config()
+        cadre_pvc_name = config['PACKAGES']['cadre-pvc-name']
+        return cadre_pvc_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_dockerhub_username():
+    try:
+        config = get_cadre_config()
+        dockerhub_username = config['PACKAGES']['docker-hub-username']
+        return dockerhub_username
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_dockerhub_pwd():
+    try:
+        config = get_cadre_config()
+        dockerhub_pwd = config['PACKAGES']['docker-hub-pwd']
+        return dockerhub_pwd
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_cadre_dockerhub_repo():
+    try:
+        config = get_cadre_config()
+        dockerhub_repo = config['PACKAGES']['docker-repo']
+        return dockerhub_repo
     except Exception as e:
         traceback.print_tb(e.__traceback__)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
