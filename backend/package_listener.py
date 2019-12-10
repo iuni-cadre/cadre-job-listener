@@ -330,7 +330,7 @@ def poll_queue():
                         tool_info = meta_db_cursor.fetchone()
                         docker_s3_root = util.config_reader.get_tools_s3_root()
                         tool_name = tool_info[0]
-                        tool_name.replace(" ", "_")
+                        tool_name = tool_name.replace(" ", "_")
                         logger.info(tool_name)
                         tool_id = tool_info[1]
                         command = tool_info[2]
@@ -347,7 +347,6 @@ def poll_queue():
                         download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
                         upload_image_dockerhub(user_tool_dir, tool_name, package_id)
                         job_name = id_generator()
-                        image_name = docker_repo
 
                         jhub_namespace = util.config_reader.get_kebenetes_namespace()
                         body = kube_create_job_object(job_name,
