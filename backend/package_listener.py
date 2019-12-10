@@ -113,10 +113,9 @@ def kube_create_job_object(name,
                            script_name,
                            env_vars,
                            input_file_list,
-                           output_file_list,
                            volume_full_path,
                            volume_subpath):
-    logger.info(commad)
+    logger.info(image_name)
     """
     Create a k8 Job Object
     Minimum definition of a job object:
@@ -157,6 +156,8 @@ def kube_create_job_object(name,
         env_list.append(client.V1EnvVar(name=env_name, value=env_value))
 
     shared_volume = volume_full_path
+    input_dir = shared_volume + '/input_files'
+    output_dir = shared_volume + '/output_files'
     shared_volume_in_pod = '/data'
     # input_dir = shared_volume + '/input'
     # if not os.path.exists(input_dir):
@@ -166,18 +167,9 @@ def kube_create_job_object(name,
     # if not os.path.exists(output_dir):
     #     os.makedirs(output_dir)
 
-    logger.info(output_file_list)
-    outputString = ",".join(output_file_list)
-    logger.info(outputString)
-
     command_list = [commad, script_name]
-    shared_inputs = []
-    for inputFile in input_file_list:
-        file_name = ntpath.basename(inputFile)
-        shared_inputs.append(shared_volume_in_pod + '/' + file_name)
-    shared_inputs_as_string = ",".join(shared_inputs)
-    output_names = ",".join(output_file_list)
-    args = [shared_inputs_as_string, output_names, shared_volume_in_pod]
+    inputs_as_string = ",".join(input_file_list)
+    args = [inputs_as_string, input_dir, output_dir]
     logger.info(args)
 
     pod = client.V1Pod()
@@ -268,7 +260,6 @@ def poll_queue():
                     job_id = query_json['job_id']
                     package_id = query_json['package_id']
                     username = query_json['username']
-                    output_file_names = query_json['output_filename']
                     logger.info("Job ID: " + job_id)
 
                     # Getting the package name from the package table in the cadre metadatabase
@@ -320,7 +311,7 @@ def poll_queue():
                             folder_path = s3_archive_folder + '/' + s3_file_name
                             logger.info(folder_path)
                             s3_client.meta.client.download_file(s3_archive_root, folder_path, input_copy)
-                            input_file_list.append(input_copy)
+                            input_file_list.append(s3_file_name)
 
                     # get tool info
                     get_tool_q = "SELECT  t.name, t.tool_id, t.command, t.script_name FROM tool t, package p WHERE p.tool_id =t.tool_id AND p.package_id=%s"
@@ -330,7 +321,7 @@ def poll_queue():
                         tool_info = meta_db_cursor.fetchone()
                         docker_s3_root = util.config_reader.get_tools_s3_root()
                         tool_name = tool_info[0]
-                        tool_name = tool_name.replace(" ", "_")
+                        tool_name = tool_name.replace(" ", "")
                         logger.info(tool_name)
                         tool_id = tool_info[1]
                         command = tool_info[2]
@@ -350,6 +341,7 @@ def poll_queue():
 
                         jhub_namespace = util.config_reader.get_kebenetes_namespace()
                         image_name = util.config_reader.get_cadre_dockerhub_repo()
+                        logger.info(image_name)
                         body = kube_create_job_object(job_name,
                                                       image_name,
                                                       package_id,
@@ -359,7 +351,6 @@ def poll_queue():
                                                       script_name,
                                                       env_vars={"VAR": "TESTING"},
                                                       input_file_list=input_file_list,
-                                                      output_file_list=output_file_names,
                                                       volume_full_path=user_package_run_dir,
                                                       volume_subpath=efs_subpath)
                         try:
