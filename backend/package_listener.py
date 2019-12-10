@@ -116,6 +116,7 @@ def kube_create_job_object(name,
                            output_file_list={},
                            volume_full_path="",
                            volume_subpath=""):
+    logger.info(commad)
     """
     Create a k8 Job Object
     Minimum definition of a job object:
@@ -165,9 +166,9 @@ def kube_create_job_object(name,
     # if not os.path.exists(output_dir):
     #     os.makedirs(output_dir)
 
-    print(output_file_list)
+    logger.info(output_file_list)
     outputString = ",".join(output_file_list)
-    print(outputString)
+    logger.info(outputString)
 
     command_list = [commad, script_name]
     shared_inputs = []
@@ -265,7 +266,6 @@ def upload_image_dockerhub(docker_path,
 
 
 def poll_queue():
-    lo
     while True:
         # Receive message from SQS queue
         response = package_sqs_client.receive_message(
@@ -390,9 +390,9 @@ def poll_queue():
                                                       volume_subpath=efs_subpath)
                         try:
                             api_response = api_instance.create_namespaced_pod("jhub", body, pretty=True)
-                            print(api_response)
+                            logger.info(api_response)
                         except ApiException as e:
-                            print("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
+                            logger.error("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
                     try:
                         for output_file in output_file_names:
                             output_file = output_file.replace(" ", "")
@@ -401,7 +401,7 @@ def poll_queue():
                             s3_client.meta.client.upload_file(output_path, root_bucket_name,
                                                               bucket_location + output_file)
                     except:
-                        print("Job ID: " + job_id)
+                        logger.info("Job ID: " + job_id)
                         update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
                         meta_db_cursor.execute(update_statement, (job_id,))
@@ -420,7 +420,7 @@ def poll_queue():
                     meta_db_cursor.close()
                     # Use this method to release the connection object and send back ti connection pool
                     cadre_meta_connection_pool.putconn(meta_connection)
-                    print("PostgreSQL connection pool is closed")
+                    logger.info("PostgreSQL connection pool is closed")
                     # Delete received message from queue
                     package_sqs_client.delete_message(
                         QueueUrl=package_queue_url,
