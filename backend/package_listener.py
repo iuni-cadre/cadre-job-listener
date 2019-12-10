@@ -201,7 +201,8 @@ def kube_create_job_object(name,
 
     container.volume_mounts = volume_mounts
     secret_name = client.V1LocalObjectReference(name='regcred')
-    spec = client.V1PodSpec(containers=[container], restart_policy='Never', image_pull_secrets=[secret_name])
+    pod_meta = client.V1ObjectMeta(name='private-reg')
+    spec = client.V1PodSpec(metadata=pod_meta, containers=[container], restart_policy='Never', image_pull_secrets=[secret_name])
     volume = client.V1Volume(name=util.config_reader.get_cadre_pv_name(), persistent_volume_claim=claim_volume_source)
     spec.volumes = [volume]
     # And finaly we can create our V1JobSpec!
