@@ -286,6 +286,7 @@ def poll_queue():
                     efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
                     efs_path = efs_root + efs_subpath
                     user_package_run_dir = efs_path + '/' + username + '/packages/' + package_name
+                    subpath = user_package_run_dir[len(efs_root):]
                     if not os.path.exists(user_package_run_dir):
                         os.makedirs(user_package_run_dir)
 
@@ -352,7 +353,7 @@ def poll_queue():
                                                       env_vars={"VAR": "TESTING"},
                                                       input_file_list=input_file_list,
                                                       volume_full_path=user_package_run_dir,
-                                                      volume_subpath=efs_subpath)
+                                                      volume_subpath=subpath)
                         try:
                             api_response = api_instance.create_namespaced_pod(jhub_namespace, body, pretty=True)
                             logger.info(api_response)
