@@ -232,36 +232,7 @@ def upload_image_dockerhub(docker_path,
     auth_config_payload = {'username': util.config_reader.get_cadre_dockerhub_username(), 'password': util.config_reader.get_cadre_dockerhub_pwd()}
     for line in client.images.push(docker_repo, stream=True, decode=True,auth_config=auth_config_payload):
         logger.info(line)
-
     logger.info("The image has been built successfully. ")
-    command_list = [command, script_name]
-    shared_inputs_as_string = ",".join(input_file_list)
-    output_names = ",".join(output_files)
-    output_names = output_names.replace(" ", "")
-    command_list.append(shared_inputs_as_string)
-    command_list.append(output_names)
-    command_list.append(output_location)
-    logger.info(command_list)
-
-    container = client.containers.run(tool_name,
-                                      detach=True,
-                                      volumes={volume_full_path: {'bind': volume_full_path, 'mode': 'rw'}},
-                                      command=command_list,
-                                      remove=True)
-
-    logger.info(container.logs())
-    logger.info('The output of the file has been copied successfully outside the docker container')
-
-    # Delete the docker container
-    # client.containers.remove('sample_test', force=True)
-    # print('The container has been removed successfully.')
-
-    # Delete the docker image
-    # client.images.remove(tool_name, force=True)
-    # print('The image has been removed successfully.')
-
-    # Deleting the unused images
-    # args = {"dangling": True}
     client.images.prune()
 
 
@@ -359,6 +330,7 @@ def poll_queue():
                         tool_info = meta_db_cursor.fetchone()
                         docker_s3_root = util.config_reader.get_tools_s3_root()
                         tool_name = tool_info[0]
+                        tool_name.replace(" ", "_")
                         logger.info(tool_name)
                         tool_id = tool_info[1]
                         command = tool_info[2]
