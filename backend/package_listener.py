@@ -107,15 +107,15 @@ def id_generator(size=12, chars=string.ascii_lowercase + string.digits):
 def kube_create_job_object(name,
                            container_image,
                            container_tag,
-                           namespace="jhub",
-                           container_name="packagecontainer",
-                           commad='command',
-                           script_name='script_name',
-                           env_vars={},
-                           input_file_list={},
-                           output_file_list={},
-                           volume_full_path="",
-                           volume_subpath=""):
+                           namespace,
+                           container_name,
+                           commad,
+                           script_name,
+                           env_vars,
+                           input_file_list,
+                           output_file_list,
+                           volume_full_path,
+                           volume_subpath):
     logger.info(commad)
     """
     Create a k8 Job Object
@@ -376,10 +376,11 @@ def poll_queue():
                         job_name = id_generator()
                         image_name = docker_repo
 
+                        jhub_namespace = util.config_reader.get_kebenetes_namespace()
                         body = kube_create_job_object(job_name,
                                                       image_name,
                                                       package_id,
-                                                      util.config_reader.get_kebenetes_namespace(),
+                                                      jhub_namespace,
                                                       tool_name,
                                                       command,
                                                       script_name,
@@ -389,7 +390,7 @@ def poll_queue():
                                                       volume_full_path=user_package_run_dir,
                                                       volume_subpath=efs_subpath)
                         try:
-                            api_response = api_instance.create_namespaced_pod("jhub", body, pretty=True)
+                            api_response = api_instance.create_namespaced_pod(jhub_namespace, body, pretty=True)
                             logger.info(api_response)
                         except ApiException as e:
                             logger.error("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
