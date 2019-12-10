@@ -222,13 +222,15 @@ def upload_image_dockerhub(docker_path,
     client = docker.DockerClient(base_url='unix://var/run/docker.sock')
     tool_name = tool_name.replace(" ", "")
     # We are building the docker image from the dockerfile here
-    client.images.build(path=docker_path, tag=tool_name, forcerm=True)
+    logger.info(tool_name)
+    logger.info(package_id)
+    client.images.build(path=docker_path, tag=tool_name)
     image = client.images.get(tool_name)
     docker_repo = util.config_reader.get_cadre_dockerhub_repo()
     image.tag(docker_repo, tag=package_id)
     auth_config_payload = {'username': util.config_reader.get_cadre_dockerhub_username(), 'password': util.config_reader.get_cadre_dockerhub_pwd()}
     for line in client.images.push(docker_repo, stream=True, decode=True,auth_config=auth_config_payload):
-        print(line)
+        logger.info(line)
 
     logger.info("The image has been built successfully. ")
     command_list = [command, script_name]
@@ -263,6 +265,7 @@ def upload_image_dockerhub(docker_path,
 
 
 def poll_queue():
+    lo
     while True:
         # Receive message from SQS queue
         response = package_sqs_client.receive_message(
@@ -356,8 +359,10 @@ def poll_queue():
                         tool_info = meta_db_cursor.fetchone()
                         docker_s3_root = util.config_reader.get_tools_s3_root()
                         tool_name = tool_info[0]
+                        logger.info(tool_name)
                         tool_id = tool_info[1]
                         command = tool_info[2]
+                        logger.info(command)
                         script_name = tool_info[3]
                         user_tool_dir = user_package_run_dir + '/tools/' + tool_name
                         if not os.path.exists(user_tool_dir):
