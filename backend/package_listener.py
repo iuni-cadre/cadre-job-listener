@@ -365,6 +365,7 @@ def poll_queue():
                         logger.info(command)
                         script_name = tool_info[3]
                         user_tool_dir = user_package_run_dir + '/tools/' + tool_name
+                        logger.info(user_tool_dir)
                         if not os.path.exists(user_tool_dir):
                             os.makedirs(user_tool_dir)
                         output_dir = user_package_run_dir + '/output_files/'
