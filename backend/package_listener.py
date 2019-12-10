@@ -105,7 +105,7 @@ def id_generator(size=12, chars=string.ascii_lowercase + string.digits):
 
 
 def kube_create_job_object(name,
-                           container_image,
+                           image_name,
                            container_tag,
                            namespace,
                            container_name,
@@ -199,7 +199,7 @@ def kube_create_job_object(name,
     claim_volume_source = client.V1PersistentVolumeClaimVolumeSource(claim_name=util.config_reader.get_cadre_pvc_name())
     volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name=util.config_reader.get_cadre_pv_name(), sub_path=volume_subpath)]
 
-    image_with_tag = container_name + ":" + container_tag
+    image_with_tag = image_name + ":" + container_tag
     container = client.V1Container(name=container_name,
                                    image=image_with_tag,
                                    env=env_list,
@@ -349,6 +349,7 @@ def poll_queue():
                         job_name = id_generator()
 
                         jhub_namespace = util.config_reader.get_kebenetes_namespace()
+                        image_name = util.config_reader.get_cadre_dockerhub_repo()
                         body = kube_create_job_object(job_name,
                                                       image_name,
                                                       package_id,
