@@ -120,17 +120,16 @@ def kube_delete_empty_pods(namespace, phase):
         logging.error("Exception when calling CoreV1Api->list_namespaced_pod: %s\n" % e)
 
     for pod in pods.items:
-        logging.info(pod)
         podname = pod.metadata.name
+        logger.info(podname)
         try:
             if pod.status.phase == phase:
-                api_response = api_pods.delete_namespaced_pod(podname, namespace, deleteoptions)
-                logging.info("Pod: {} deleted!".format(podname))
-                logging.info(api_response)
+                api_instance.delete_namespaced_pod(podname, namespace, body=deleteoptions, pretty=True)
+                logger.info("Pod: {} deleted!".format(podname))
             else:
-                logging.info("Pod: {} still not done... Phase: {}".format(podname, pod.status.phase))
+                logger.info("Pod: {} still not done... Phase: {}".format(podname, pod.status.phase))
         except ApiException as e:
-            logging.error("Exception when calling CoreV1Api->delete_namespaced_pod: %s\n" % e)
+            logger.error("Exception when calling CoreV1Api->delete_namespaced_pod: %s\n" % e)
 
     return
 
