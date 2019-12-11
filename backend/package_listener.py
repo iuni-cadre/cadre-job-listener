@@ -54,8 +54,9 @@ package_sqs_client = boto3.client('sqs',
                                   region_name=util.config_reader.get_aws_region())
 
 package_queue_url = util.config_reader.get_package_queue_url()
+kub_config_location = util.config_reader.get_kub_config_location()
 
-config.load_kube_config()
+config.load_kube_config(config_file=kub_config_location)
 configuration = kubernetes.client.Configuration()
 api_instance = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
 
@@ -100,8 +101,39 @@ def download_s3_dir(client, bucket, path, target):
                 client.meta.client.download_file(bucket, key['Key'], local_file_path)
 
 
-def id_generator(size=12, chars=string.ascii_lowercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+def kube_delete_empty_pods(namespace, phase):
+    """
+    Pods are never empty, just completed the lifecycle.
+    As such they can be deleted.
+    Pods can be without any running container in 2 states:
+    Succeeded and Failed. This call doesn't terminate Failed pods by default.
+    """
+    # The always needed object
+    deleteoptions = client.V1DeleteOptions()
+    # We need the api entry point for pods
+    # List the pods
+    try:
+        pods = client.list_namespaced_pod(namespace,
+                                            include_uninitialized=False,
+                                            pretty=True,
+                                            timeout_seconds=60)
+    except ApiException as e:
+        logging.error("Exception when calling CoreV1Api->list_namespaced_pod: %s\n" % e)
+
+    for pod in pods.items:
+        logging.info(pod)
+        podname = pod.metadata.name
+        try:
+            if pod.status.phase == phase:
+                api_response = api_pods.delete_namespaced_pod(podname, namespace, deleteoptions)
+                logging.info("Pod: {} deleted!".format(podname))
+                logging.info(api_response)
+            else:
+                logging.info("Pod: {} still not done... Phase: {}".format(podname, pod.status.phase))
+        except ApiException as e:
+            logging.error("Exception when calling CoreV1Api->delete_namespaced_pod: %s\n" % e)
+
+    return
 
 
 def kube_create_job_object(name,
@@ -201,7 +233,8 @@ def kube_create_job_object(name,
                                    image_pull_policy='IfNotPresent')
 
     container.volume_mounts = volume_mounts
-    secret_name = client.V1LocalObjectReference(name='cadrerepocred')
+    docker_secret_name = util.config_reader.get_kub_docker_secret()
+    secret_name = client.V1LocalObjectReference(name=docker_secret_name)
     # pod_meta = client.V1ObjectMeta(name='private-reg')
     spec = client.V1PodSpec(containers=[container], restart_policy='Never', image_pull_secrets=[secret_name], active_deadline_seconds=600)
     volume = client.V1Volume(name=util.config_reader.get_cadre_pv_name(), persistent_volume_claim=claim_volume_source)
@@ -347,6 +380,7 @@ def poll_queue():
 
                         image_name = util.config_reader.get_cadre_dockerhub_repo()
                         logger.info(image_name)
+                        kube_delete_empty_pods(jhub_namespace, "Completed")
                         body = kube_create_job_object(job_name,
                                                       image_name,
                                                       package_id,

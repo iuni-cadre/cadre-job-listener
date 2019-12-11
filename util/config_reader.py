@@ -407,3 +407,25 @@ def get_cadre_dockerhub_repo():
         traceback.print_tb(e.__traceback__)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
+
+
+def get_kub_config_location():
+    try:
+        config = get_cadre_config()
+        kub_config_location = config['PACKAGES']['kub-config-file']
+        return kub_config_location
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
+def get_kub_docker_secret():
+    try:
+        config = get_cadre_config()
+        kub_docker_secret = config['PACKAGES']['kub-docker-secret']
+        return kub_docker_secret
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
