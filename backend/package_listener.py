@@ -109,11 +109,11 @@ def kube_delete_empty_pods(namespace, phase):
     Succeeded and Failed. This call doesn't terminate Failed pods by default.
     """
     # The always needed object
-    deleteoptions = client.V1DeleteOptions()
+    deleteoptions = kubernetes.client.V1DeleteOptions()
     # We need the api entry point for pods
     # List the pods
     try:
-        pods = client.list_namespaced_pod(namespace,
+        pods = api_instance.list_namespaced_pod(namespace,
                                             include_uninitialized=False,
                                             pretty=True,
                                             timeout_seconds=60)
