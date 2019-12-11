@@ -173,6 +173,7 @@ def kube_create_job_object(name,
     logger.info(args)
 
     pod = client.V1Pod()
+
     pod.metadata = client.V1ObjectMeta(name=container_name)
     hostpathvolumesource = client.V1HostPathVolumeSource(path=shared_volume, type='DirectoryOrCreate')
     volume_spec = client.V1PersistentVolumeSpec(storage_class_name='', volume_mode='Filesystem',
@@ -200,9 +201,9 @@ def kube_create_job_object(name,
                                    image_pull_policy='IfNotPresent')
 
     container.volume_mounts = volume_mounts
-    secret_name = client.V1LocalObjectReference(name='regcred')
-    pod_meta = client.V1ObjectMeta(name='private-reg')
-    spec = client.V1PodSpec(metadata=pod_meta, containers=[container], restart_policy='Never', image_pull_secrets=[secret_name])
+    secret_name = client.V1LocalObjectReference(name='cadrerepocred')
+    # pod_meta = client.V1ObjectMeta(name='private-reg')
+    spec = client.V1PodSpec(containers=[container], restart_policy='Never', image_pull_secrets=[secret_name])
     volume = client.V1Volume(name=util.config_reader.get_cadre_pv_name(), persistent_volume_claim=claim_volume_source)
     spec.volumes = [volume]
     # And finaly we can create our V1JobSpec!
