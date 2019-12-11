@@ -203,7 +203,7 @@ def kube_create_job_object(name,
     container.volume_mounts = volume_mounts
     secret_name = client.V1LocalObjectReference(name='cadrerepocred')
     # pod_meta = client.V1ObjectMeta(name='private-reg')
-    spec = client.V1PodSpec(containers=[container], restart_policy='Never', image_pull_secrets=[secret_name])
+    spec = client.V1PodSpec(containers=[container], restart_policy='Never', image_pull_secrets=[secret_name], active_deadline_seconds=600)
     volume = client.V1Volume(name=util.config_reader.get_cadre_pv_name(), persistent_volume_claim=claim_volume_source)
     spec.volumes = [volume]
     # And finaly we can create our V1JobSpec!
@@ -387,12 +387,11 @@ def poll_queue():
                     meta_db_cursor.execute(update_statement, (job_id,))
                     meta_connection.commit()
 
-                    # delete the pod
-                    if body is not None:
-                        api_response = api_instance.delete_namespaced_pod(name=job_id,
-                                                                          namespace=jhub_namespace,
-                                                                          body=body)
-                        logger.info(api_response)
+                    # if body is not None:
+                    #     api_response = api_instance.delete_namespaced_pod(name=job_id,
+                    #                                                       namespace=jhub_namespace,
+                    #                                                       body=body)
+                    #     logger.info(api_response)
                 except (Exception, psycopg2.Error) as error:
                     traceback.print_tb(error.__traceback__)
                     logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
