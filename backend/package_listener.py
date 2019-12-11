@@ -114,7 +114,6 @@ def kube_delete_empty_pods(namespace, phase):
     # List the pods
     try:
         pods = api_instance.list_namespaced_pod(namespace,
-                                            include_uninitialized=False,
                                             pretty=True,
                                             timeout_seconds=60)
     except ApiException as e:
