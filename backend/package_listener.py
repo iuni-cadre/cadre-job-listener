@@ -378,7 +378,7 @@ def poll_queue():
 
                         image_name = util.config_reader.get_cadre_dockerhub_repo()
                         logger.info(image_name)
-                        kube_delete_empty_pods(jhub_namespace, "Completed")
+                        kube_delete_empty_pods(jhub_namespace, "Succeeded")
                         body = kube_create_job_object(job_name,
                                                       image_name,
                                                       package_id,
