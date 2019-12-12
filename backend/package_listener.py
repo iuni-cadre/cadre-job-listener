@@ -341,6 +341,7 @@ def poll_queue():
                         docker_s3_root = util.config_reader.get_tools_s3_root()
                         tool_name = tool_info[0]
                         tool_name = tool_name.replace(" ", "")
+                        tool_name = tool_name.replace("_", "-")
                         logger.info(tool_name)
                         tool_id = tool_info[1]
                         command = tool_info[2]
