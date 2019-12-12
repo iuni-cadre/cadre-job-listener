@@ -170,17 +170,6 @@ def kube_create_job_object(name,
     Also Containers must be a list!
     Docs3: https://github.com/kubernetes-client/python/issues/589
     """
-    # Body is the object Body
-    body = client.V1Job(api_version="batch/v1", kind="Job")
-    # Body needs Metadata
-    # Attention: Each JOB must have a different name!
-    body.metadata = client.V1ObjectMeta(namespace=namespace, name=name)
-    # And a Status
-    body.status = client.V1JobStatus()
-    # Now we start with the Template...
-    template = client.V1PodTemplate()
-    template.template = client.V1PodTemplateSpec()
-    # Passing Arguments in Env:
     env_list = []
     for env_name, env_value in env_vars.items():
         env_list.append(client.V1EnvVar(name=env_name, value=env_value))
@@ -189,13 +178,6 @@ def kube_create_job_object(name,
     shared_volume = volume_full_path
     input_dir = shared_volume_in_pod + '/input_files'
     output_dir = shared_volume_in_pod + '/output_files'
-    # input_dir = shared_volume + '/input'
-    # if not os.path.exists(input_dir):
-    #     os.makedirs(input_dir)
-    #
-    # output_dir = shared_volume + '/output1'
-    # if not os.path.exists(output_dir):
-    #     os.makedirs(output_dir)
 
     command_list = [command, script_name]
     inputs_as_string = ",".join(input_file_list)
