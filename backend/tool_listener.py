@@ -30,7 +30,7 @@ import util.config_reader
 import util.tool_util
 from util.db_util import cadre_meta_connection_pool
 
-log_conf = conf + '/logging-package-conf.json'
+log_conf = conf + '/logging-tool-conf.json'
 with open(log_conf, 'r') as logging_configuration_file:
     config_dict = json.load(logging_configuration_file)
 
