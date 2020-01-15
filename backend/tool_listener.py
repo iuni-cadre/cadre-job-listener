@@ -15,10 +15,6 @@ import boto3
 import psycopg2 as psycopg2
 import docker
 import time
-from kubernetes import client, config, utils
-from kubernetes.stream import stream
-import kubernetes.client
-from kubernetes.client.rest import ApiException
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
