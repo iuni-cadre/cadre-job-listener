@@ -4,7 +4,6 @@ import logging
 
 import boto3
 import jinja2
-import config_reader
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
