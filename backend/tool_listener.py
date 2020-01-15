@@ -101,12 +101,12 @@ def poll_queue():
                     job_id = query_json['job_id']
                     tool_id = query_json['tool_id']
                     username = query_json['username']
-                    tool_name = request_json.get('name', None)
-                    description = request_json.get('description', None)
-                    install_commands = request_json.get('install_commands', None)
-                    file_paths = request_json.get('file_paths', None)
-                    entrypoint_script = request_json.get('entrypoint', None)
-                    environment = request_json.get('environment', None)
+                    tool_name = query_json['name']
+                    description = query_json['description']
+                    install_commands = query_json['install_commands']
+                    file_paths = query_json['file_paths']
+                    entrypoint_script = query_json['entrypoint']
+                    environment = query_json['environment']
 
                     if 'python' is environment:
                         command = 'python'
