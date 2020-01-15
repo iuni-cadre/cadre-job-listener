@@ -134,18 +134,11 @@ def poll_queue():
                     util.tool_util.create_python_dockerfile_and_upload_s3(tool_id, docker_template_json)
                     # upload tools
                     util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id)
-                    # create database connection
-                    conn = psycopg2.connect(dbname=meta_db_config["database-name"],
-                                            user=meta_db_config["database-username"],
-                                            password=meta_db_config["database-password"],
-                                            host=meta_db_config["database-host"],
-                                            port=meta_db_config["database-port"])
-                    cur = conn.cursor()
 
                     insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
                     data = (tool_id, description, tool_name, entrypoint_script, command, user_id)
-                    cur.execute(insert_q, data)
-                    conn.commit()
+                    meta_db_cursor.execute(insert_q, data)
+                    meta_connection.commit()
 
                     # download tool scripts and dockerfile from s3 to efs/tools
                     docker_s3_root = util.config_reader.get_tools_s3_root() + '/' + tool_id + '/' + filename
