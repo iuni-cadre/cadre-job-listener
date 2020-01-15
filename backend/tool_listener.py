@@ -61,7 +61,7 @@ def upload_image_dockerhub(tool_name,
     logger.info(tool_name)
     logger.info(tool_id)
 
-    client.images.build(path=docker_path, tag=tool_name)
+    client.images.build(path=docker_path, tag=tool_name, forcerm=True)
     image = client.images.get(tool_name)
     docker_repo = util.config_reader.get_cadre_dockerhub_repo()
     image.tag(docker_repo, tag=tool_id)
@@ -69,7 +69,8 @@ def upload_image_dockerhub(tool_name,
     for line in client.images.push(docker_repo, stream=True, decode=True,auth_config=auth_config_payload):
         logger.info(line)
     logger.info("The image has been built successfully. ")
-    client.images.prune()
+    client.images.remove(image=image.id, force=True)
+    pruned_images = client.images.prune()
 
 
 def poll_queue():
