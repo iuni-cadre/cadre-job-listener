@@ -27,6 +27,7 @@ conf = cadre + '/conf'
 sys.path.append(cadre)
 
 import util.config_reader
+import util.tool_util
 from util.db_util import cadre_meta_connection_pool
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
@@ -59,46 +60,6 @@ kub_config_location = util.config_reader.get_kub_config_location()
 config.load_kube_config(config_file=kub_config_location)
 configuration = kubernetes.client.Configuration()
 api_instance = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
-
-
-def assert_dir_exists(path):
-    """
-    Checks if directory tree in path exists. If not it created them.
-    :param path: the path to check if it exists
-    """
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-
-def download_s3_dir(client, bucket, path, target):
-    """
-    Downloads recursively the given S3 path to the target directory.
-    :param client: S3 client to use.
-    :param bucket: the name of the bucket to download from
-    :param path: The S3 directory to download.
-    :param target: the local directory to download the files to.
-    """
-
-    # Handle missing / at end of prefix
-    if not path.endswith('/'):
-        path += '/'
-
-    paginator = client.meta.client.get_paginator('list_objects_v2')
-    for result in paginator.paginate(Bucket=bucket, Prefix=path):
-        # Download each file individually
-        for key in result['Contents']:
-            # Calculate relative path
-            rel_path = key['Key'][len(path):]
-            # Skip paths ending in /
-            if not key['Key'].endswith('/'):
-                local_file_path = os.path.join(target, rel_path)
-                # Make sure directories exist
-                local_file_dir = os.path.dirname(local_file_path)
-                assert_dir_exists(local_file_dir)
-                client.meta.client.download_file(bucket, key['Key'], local_file_path)
 
 
 def kube_delete_empty_pods(namespace, phase):
@@ -225,25 +186,6 @@ def kube_create_job_object(name,
     return pod
 
 
-def upload_image_dockerhub(docker_path,
-                           tool_name,
-                           package_id):
-    client = docker.DockerClient(base_url='unix://var/run/docker.sock')
-    tool_name = tool_name.replace(" ", "")
-    # We are building the docker image from the dockerfile here
-    logger.info(tool_name)
-    logger.info(package_id)
-    client.images.build(path=docker_path, tag=tool_name)
-    image = client.images.get(tool_name)
-    docker_repo = util.config_reader.get_cadre_dockerhub_repo()
-    image.tag(docker_repo, tag=package_id)
-    auth_config_payload = {'username': util.config_reader.get_cadre_dockerhub_username(), 'password': util.config_reader.get_cadre_dockerhub_pwd()}
-    for line in client.images.push(docker_repo, stream=True, decode=True,auth_config=auth_config_payload):
-        logger.info(line)
-    logger.info("The image has been built successfully. ")
-    client.images.prune()
-
-
 def poll_queue():
     while True:
         # Receive message from SQS queue
@@ -355,8 +297,7 @@ def poll_queue():
                         if not os.path.exists(output_dir):
                             os.makedirs(output_dir)
                         logger.info(output_dir)
-                        download_s3_dir(s3_client, docker_s3_root, tool_id, user_tool_dir)
-                        upload_image_dockerhub(user_tool_dir, tool_name, package_id)
+                        util.tool_util.download_s3_dir(docker_s3_root, tool_id, user_tool_dir)
                         job_name = job_id
 
                         image_name = util.config_reader.get_cadre_dockerhub_repo()
@@ -367,7 +308,7 @@ def poll_queue():
                         kube_delete_empty_pods(jhub_namespace, "Error")
                         body = kube_create_job_object(job_name,
                                                       image_name,
-                                                      package_id,
+                                                      tool_id,
                                                       jhub_namespace,
                                                       tool_name,
                                                       command,

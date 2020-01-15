@@ -80,6 +80,17 @@ def get_package_queue_url():
         raise Exception('Unable to find cadre.config file !')
 
 
+def get_tool_queue_url():
+    try:
+        config = get_cadre_config()
+        queue_url = config['AWS']['tool_queue']
+        return queue_url
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
+        raise Exception('Unable to find cadre.config file !')
+
+
 def get_tools_s3_root():
     try:
         config = get_cadre_config()

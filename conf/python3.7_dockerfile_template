@@ -1,0 +1,17 @@
+FROM python:3.7-slim-buster
+
+# Create app directory
+WORKDIR /usr/local/bin
+
+# Install app dependencies
+{% for copy_file in docker_info.copy_files %}
+COPY {{copy_file.name }} ./
+{%- endfor %}
+
+
+{% for command in docker_info.commands %}
+RUN {{command.name }}
+{%- endfor %}
+
+EXPOSE 80
+ENTRYPOINT [ "python", "-u" "{{ docker_info.entrypoint }}" ]
