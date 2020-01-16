@@ -115,8 +115,13 @@ def poll_queue():
                     else:
                         command = environment
 
+                    # upload tool scripts
+                    util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id, username)
+                    logger.info('Tool scripts uploaded to S3')
                     copy_files = []
-                    for file_path in file_paths:
+                    relative_paths = util.tool_util.get_relative_paths_tool_scripts(file_paths)
+                    logger.info(relative_paths)
+                    for file_path in relative_paths:
                         file_info = {'name': file_path}
                         copy_files.append(file_info)
                     install_commands_list = []
@@ -137,9 +142,6 @@ def poll_queue():
                     logger.info(docker_template_json)
                     util.tool_util.create_python_dockerfile_and_upload_s3(tool_id, docker_template_json)
                     logger.info('Dockerfile created and uploaded to S3')
-                    # upload tools
-                    util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id, username)
-                    logger.info('Tool scripts uploaded to S3')
 
                     insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
                     data = (tool_id, description, tool_name, entrypoint_script, command, user_id)

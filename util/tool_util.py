@@ -7,6 +7,7 @@ import boto3
 import jinja2
 import json
 import errno
+import shutil
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
@@ -54,7 +55,7 @@ def create_python_dockerfile_and_upload_s3(tool_id, docker_template_json):
         s3_client.Object(s3_tool_location, dockerfile_s3_subpath).put(Body=dockerfile_content)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
-        print("Error while archiving files to s3")
+        logger.error("Error while archiving files to s3. Error is " + str(error))
 
 
 # archive files to s3
@@ -75,7 +76,7 @@ def archive_input_files(files, username):
             s3_client.meta.client.upload_file(file_full_path, s3_file_archive, s3_archive_sub_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
-        print("Error while archiving files to s3")
+        logger.error("Error while archiving files to s3. Error is " + str(error))
 
 
 # upload tool script files to s3 tool location
@@ -91,14 +92,37 @@ def upload_tool_scripts_to_s3(files, tool_id, username):
                                    region_name=aws_region)
 
         for file in files:
-            file_full_path = efs_path + '/' + username + '/' +  file
+            file_full_path = efs_path + '/' + username + '/' + file + '/'
             logger.info(file_full_path)
-            filename = os.path.basename(file_full_path)
-            s3_tool_sub_path = tool_id + '/' + filename
-            s3_client.meta.client.upload_file(file_full_path, s3_tool_location, s3_tool_sub_path)
+            for dirpath, dirnames, filenames in os.walk(file_full_path):
+                for filename in filenames:
+                    subfile_path = dirpath + filename
+                    relative_dir = dirpath[len(file_full_path):]
+                    s3_tool_sub_path = tool_id + '/' + relative_dir + '/' + filename
+                    s3_client.meta.client.upload_file(subfile_path, s3_tool_location, s3_tool_sub_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
-        logger.error("Error while uploading files to s3 tool location")
+        logger.error("Error while uploading files to s3 tool location. Error " + str(error))
+
+
+def get_relative_paths_tool_scripts(files):
+    relative_paths = []
+    try:
+        logger.info(efs_path)
+        for file in files:
+            file_full_path = efs_path + '/' + username + '/' + file + '/'
+            logger.info(file_full_path)
+            for dirpath, dirnames, filenames in os.walk(file_full_path):
+                for filename in filenames:
+                    relative_dir = dirpath[len(file_full_path):]
+                    if relative_dir is None:
+                        relative_file_path = filename
+                    else:
+                        relative_file_path = relative_dir + '/' + filename
+                    relative_paths.append(relative_file_path)
+    except (Exception) as error:
+        traceback.print_tb(error.__traceback__)
+        logger.error("Error while getting relative paths. Error " + str(error))
 
 
 def assert_dir_exists(path):
@@ -147,4 +171,17 @@ def download_s3_dir(bucket, path, target):
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
         logger.error(error)
-        logger.info("Error while downloading files from s3 tool location to EFS")
+        logger.info("Error while downloading files from s3 tool location to EFS. Error is " + str(error))
+
+
+def copy_files(input_path, output_path):
+    for dirpath, dirnames, filenames in os.walk(input_path):
+        structure = os.path.join(output_path, dirpath[len(input_path):])
+        if not os.path.isdir(structure):
+            os.mkdir(structure)
+        else:
+            print("Folder does already exits!")
+        # copy filenames
+        for file in filenames:
+            shutil.copyfile(dirpath + '/' + file, structure + '/' + file)
+
