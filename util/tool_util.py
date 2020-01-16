@@ -105,7 +105,7 @@ def upload_tool_scripts_to_s3(files, tool_id, username):
         logger.error("Error while uploading files to s3 tool location. Error " + str(error))
 
 
-def get_relative_paths_tool_scripts(files):
+def get_relative_paths_tool_scripts(files, username):
     relative_paths = []
     try:
         logger.info(efs_path)

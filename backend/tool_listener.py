@@ -119,7 +119,7 @@ def poll_queue():
                     util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id, username)
                     logger.info('Tool scripts uploaded to S3')
                     copy_files = []
-                    relative_paths = util.tool_util.get_relative_paths_tool_scripts(file_paths)
+                    relative_paths = util.tool_util.get_relative_paths_tool_scripts(file_paths, username)
                     logger.info(relative_paths)
                     for file_path in relative_paths:
                         file_info = {'name': file_path}
