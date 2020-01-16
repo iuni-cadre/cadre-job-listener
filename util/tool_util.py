@@ -124,6 +124,7 @@ def get_relative_paths_tool_scripts(files, username):
             else:
                 relative_file_path = os.path.basename(file_full_path)
                 relative_paths.append(relative_file_path)
+        return relative_paths
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
         logger.error("Error while getting relative paths. Error " + str(error))
