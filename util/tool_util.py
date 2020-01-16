@@ -112,14 +112,18 @@ def get_relative_paths_tool_scripts(files, username):
         for file in files:
             file_full_path = efs_path + '/' + username + '/' + file + '/'
             logger.info(file_full_path)
-            for dirpath, dirnames, filenames in os.walk(file_full_path):
-                for filename in filenames:
-                    relative_dir = dirpath[len(file_full_path):]
-                    if relative_dir is None:
-                        relative_file_path = filename
-                    else:
-                        relative_file_path = relative_dir + '/' + filename
-                    relative_paths.append(relative_file_path)
+            if os.path.isdir(file_full_path):
+                for dirpath, dirnames, filenames in os.walk(file_full_path):
+                    for filename in filenames:
+                        relative_dir = dirpath[len(file_full_path):]
+                        if relative_dir is None:
+                            relative_file_path = filename
+                        else:
+                            relative_file_path = relative_dir + '/' + filename
+                        relative_paths.append(relative_file_path)
+            else:
+                relative_file_path = os.path.basename(file_full_path)
+                relative_paths.append(relative_file_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
         logger.error("Error while getting relative paths. Error " + str(error))
@@ -185,3 +189,5 @@ def copy_files(input_path, output_path):
         for file in filenames:
             shutil.copyfile(dirpath + '/' + file, structure + '/' + file)
 
+# if __name__ == "__main__":
+#     copy_files('/home/chathuri/Downloads/a/cloudera-errors.png', '/home/chathuri/Downloads/b')
