@@ -132,9 +132,13 @@ def poll_queue():
                         'commands': install_commands_list,
                         'entrypoint': entrypoint_script
                     }
+                    logger.info(docker_template_json)
+                    logger.info(tool_id)
                     util.tool_util.create_python_dockerfile_and_upload_s3(tool_id, docker_template_json)
+                    logger.info('Dockerfile created and uploaded to S3')
                     # upload tools
                     util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id)
+                    logger.info('Tool scripts uploaded to S3')
 
                     insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
                     data = (tool_id, description, tool_name, entrypoint_script, command, user_id)
@@ -142,7 +146,7 @@ def poll_queue():
                     meta_connection.commit()
 
                     # download tool scripts and dockerfile from s3 to efs/tools
-                    docker_s3_root = util.config_reader.get_tools_s3_root() + '/' + tool_id + '/' + filename
+                    docker_s3_root = util.config_reader.get_tools_s3_root() + '/' + tool_id
                     efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
                     efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
                     efs_path = efs_root + efs_subpath

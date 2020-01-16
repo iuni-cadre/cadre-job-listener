@@ -34,7 +34,10 @@ def create_python_dockerfile_and_upload_s3(tool_id, docker_template_json):
         TEMPLATE_FILE = "python3.7_dockerfile_template"
         template = template_env.get_template(TEMPLATE_FILE)
         dockerfile_content = template.render(docker_info=docker_template_json)  # this is where to put args to the template renderer
+        logger.info(dockerfile_content)
         dockerfile_s3_subpath = tool_id + "/Dockerfile"
+        logger.info(s3_tool_location)
+        logger.info(dockerfile_s3_subpath)
         s3_client.Object(s3_tool_location, dockerfile_s3_subpath).put(Body=dockerfile_content)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
