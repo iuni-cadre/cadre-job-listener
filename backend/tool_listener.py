@@ -101,6 +101,7 @@ def poll_queue():
                     job_id = query_json['job_id']
                     tool_id = query_json['tool_id']
                     username = query_json['username']
+                    user_id = query_json['user_id']
                     tool_name = query_json['name']
                     description = query_json['description']
                     install_commands = query_json['install_commands']
