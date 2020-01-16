@@ -15,6 +15,7 @@ import boto3
 import psycopg2 as psycopg2
 import docker
 import time
+import json
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
@@ -56,15 +57,16 @@ def upload_image_dockerhub(tool_name,
     # We are building the docker image from the dockerfile here
     logger.info(tool_name)
     logger.info(tool_id)
+    logger.info(docker_path)
 
     client.images.build(path=docker_path, tag=tool_name, forcerm=True)
+    logger.info('Image built successfully')
     image = client.images.get(tool_name)
     docker_repo = util.config_reader.get_cadre_dockerhub_repo()
     image.tag(docker_repo, tag=tool_id)
     auth_config_payload = {'username': util.config_reader.get_cadre_dockerhub_username(), 'password': util.config_reader.get_cadre_dockerhub_pwd()}
     for line in client.images.push(docker_repo, stream=True, decode=True,auth_config=auth_config_payload):
         logger.info(line)
-    logger.info("The image has been built successfully. ")
     client.images.remove(image=image.id, force=True)
     pruned_images = client.images.prune()
 
@@ -93,7 +95,6 @@ def poll_queue():
                 receipt_handle = message['ReceiptHandle']
                 try:
                     message_body = message['Body']
-                    logger.info(message_body)
                     logger.info("Received message id " + message['MessageId'])
                     query_json = json.loads(message_body)
                     logger.info(query_json)
@@ -119,13 +120,14 @@ def poll_queue():
                         file_info = {'name': file_path}
                         copy_files.append(file_info)
                     install_commands_list = []
-                    if ',' in install_commands:
-                        commands_list = install_commands.split(",")
-                        for command in commands_list:
-                            command_info = {'name': command}
-                            install_commands_list.append(command_info)
-                    else:
-                        install_commands_list = [{'name': install_commands}]
+                    if len(install_commands) > 0:
+                        if ',' in install_commands:
+                            commands_list = install_commands.split(",")
+                            for command in commands_list:
+                                command_info = {'name': command}
+                                install_commands_list.append(command_info)
+                        else:
+                            install_commands_list = [{'name': install_commands}]                    
                     # create dockerfile
                     docker_template_json = {
                         'copy_files': copy_files,
@@ -133,11 +135,10 @@ def poll_queue():
                         'entrypoint': entrypoint_script
                     }
                     logger.info(docker_template_json)
-                    logger.info(tool_id)
                     util.tool_util.create_python_dockerfile_and_upload_s3(tool_id, docker_template_json)
                     logger.info('Dockerfile created and uploaded to S3')
                     # upload tools
-                    util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id)
+                    util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id, username)
                     logger.info('Tool scripts uploaded to S3')
 
                     insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
@@ -146,14 +147,17 @@ def poll_queue():
                     meta_connection.commit()
 
                     # download tool scripts and dockerfile from s3 to efs/tools
-                    docker_s3_root = util.config_reader.get_tools_s3_root() + '/' + tool_id
+                    docker_s3_root = util.config_reader.get_tools_s3_root()
                     efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
                     efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
                     efs_path = efs_root + efs_subpath
                     efs_tool_dir = efs_path + '/tools/' + tool_id
                     if not os.path.exists(efs_tool_dir):
                         os.makedirs(efs_tool_dir)
-                    util.tool_util.download_s3_dir(docker_s3_root, tool_id, user_tool_dir)
+                    logger.info(docker_s3_root)    
+                    logger.info(tool_id)    
+                    logger.info(efs_tool_dir)    
+                    util.tool_util.download_s3_dir(docker_s3_root, tool_id, efs_tool_dir)
                     # upload the image to dockerhub
                     upload_image_dockerhub(tool_name, tool_id, efs_tool_dir)
 

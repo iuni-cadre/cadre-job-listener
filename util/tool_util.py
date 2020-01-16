@@ -1,10 +1,12 @@
 import os
 import sys
 import traceback
-import logging
+import logging.config
 
 import boto3
 import jinja2
+import json
+import errno
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
@@ -34,11 +36,13 @@ efs_path = util.config_reader.get_cadre_efs_root_query_results_listener() + util
 
 def create_python_dockerfile_and_upload_s3(tool_id, docker_template_json):
     try:
+        logger.info(aws_access_key_id)
+        logger.info(conf)
         s3_client = boto3.resource('s3',
                                    aws_access_key_id=aws_access_key_id,
                                    aws_secret_access_key=aws_secret,
                                    region_name=aws_region)
-        template_loader = jinja2.FileSystemLoader(searchpath=conf_path)
+        template_loader = jinja2.FileSystemLoader(searchpath=conf)
         template_env = jinja2.Environment(loader=template_loader)
         TEMPLATE_FILE = "python3.7_dockerfile_template"
         template = template_env.get_template(TEMPLATE_FILE)
@@ -77,22 +81,24 @@ def archive_input_files(files, username):
 # upload tool script files to s3 tool location
 # file paths are relative to users home directory
 # need to get the efs home from config
-def upload_tool_scripts_to_s3(files, tool_id):
+def upload_tool_scripts_to_s3(files, tool_id, username):
     try:
+        logger.info(tool_id)
+        logger.info(efs_path)
         s3_client = boto3.resource('s3',
                                    aws_access_key_id=aws_access_key_id,
                                    aws_secret_access_key=aws_secret,
                                    region_name=aws_region)
 
         for file in files:
-            file_full_path = efs_path + '/' + username + '/' + file
+            file_full_path = efs_path + '/' + username + '/' +  file
             logger.info(file_full_path)
             filename = os.path.basename(file_full_path)
             s3_tool_sub_path = tool_id + '/' + filename
             s3_client.meta.client.upload_file(file_full_path, s3_tool_location, s3_tool_sub_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
-        print("Error while uploading files to s3 tool location")
+        logger.error("Error while uploading files to s3 tool location")
 
 
 def assert_dir_exists(path):
@@ -103,6 +109,7 @@ def assert_dir_exists(path):
     try:
         os.makedirs(path)
     except OSError as e:
+        logger.info(e)
         if e.errno != errno.EEXIST:
             raise
 
@@ -129,13 +136,15 @@ def download_s3_dir(bucket, path, target):
             for key in result['Contents']:
                 # Calculate relative path
                 rel_path = key['Key'][len(path):]
+                logger.info(rel_path)
                 # Skip paths ending in /
                 if not key['Key'].endswith('/'):
                     local_file_path = os.path.join(target, rel_path)
                     # Make sure directories exist
                     local_file_dir = os.path.dirname(local_file_path)
                     assert_dir_exists(local_file_dir)
-                    client.meta.client.download_file(bucket, key['Key'], local_file_path)
+                    s3_client.meta.client.download_file(bucket, key['Key'], local_file_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
-        print("Error while downloading files from s3 tool location to EFS")
+        logger.error(error)
+        logger.info("Error while downloading files from s3 tool location to EFS")

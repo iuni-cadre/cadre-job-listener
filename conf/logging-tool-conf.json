@@ -13,7 +13,8 @@
             "level": "INFO",
             "formatter": "simple",
             "filename": "cadre_tool_listener.log",
-            "encoding": "utf8"
+            "encoding": "utf8",
+            "mode": "a"
         }
     },
 
