@@ -11,7 +11,16 @@ cadre = os.path.dirname(abspath)
 util = cadre + '/util'
 conf = cadre + '/conf'
 sys.path.append(cadre)
+
+log_conf = conf + '/logging-tool-conf.json'
+with open(log_conf, 'r') as logging_configuration_file:
+    config_dict = json.load(logging_configuration_file)
+
+logging.config.dictConfig(config_dict)
+
+# Log that the logger was configured
 logger = logging.getLogger(__name__)
+logger.info('Completed configuring logger()!')
 
 import util.config_reader
 
