@@ -110,9 +110,10 @@ def get_relative_paths_tool_scripts(files, username):
     try:
         logger.info(efs_path)
         for file in files:
-            file_full_path = efs_path + '/' + username + '/' + file + '/'
+            file_full_path = efs_path + '/' + username + '/' + file
             logger.info(file_full_path)
             if os.path.isdir(file_full_path):
+                file_full_path = efs_path + '/' + username + '/' + file + '/'
                 for dirpath, dirnames, filenames in os.walk(file_full_path):
                     for filename in filenames:
                         relative_dir = dirpath[len(file_full_path):]
