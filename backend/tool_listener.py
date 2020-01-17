@@ -119,11 +119,13 @@ def poll_queue():
                     util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id, username)
                     logger.info('Tool scripts uploaded to S3')
                     copy_files = []
-                    relative_paths = util.tool_util.get_relative_paths_tool_scripts(file_paths, username)
-                    logger.info(relative_paths)
-                    for file_path in relative_paths:
+                    relative_tool_script_paths = util.tool_util.get_relative_paths_tool_scripts(file_paths, username)
+                    logger.info(relative_tool_script_paths)
+                    for file_path in relative_tool_script_paths:
                         file_info = {'name': file_path}
                         copy_files.append(file_info)
+                    entrypoint_script = [entrypoint_script]
+                    entrypoint_relative_path = util.tool_util.get_relative_paths_tool_scripts(entrypoint_script, username)
                     install_commands_list = []
                     if len(install_commands) > 0:
                         if ',' in install_commands:
@@ -137,7 +139,7 @@ def poll_queue():
                     docker_template_json = {
                         'copy_files': copy_files,
                         'commands': install_commands_list,
-                        'entrypoint': entrypoint_script
+                        'entrypoint': entrypoint_relative_path[0]
                     }
                     logger.info(docker_template_json)
                     util.tool_util.create_python_dockerfile_and_upload_s3(tool_id, docker_template_json)
