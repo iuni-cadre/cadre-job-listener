@@ -92,14 +92,20 @@ def upload_tool_scripts_to_s3(files, tool_id, username):
                                    region_name=aws_region)
 
         for file in files:
-            file_full_path = efs_path + '/' + username + '/' + file + '/'
+            file_full_path = efs_path + '/' + username + '/' + file
             logger.info(file_full_path)
-            for dirpath, dirnames, filenames in os.walk(file_full_path):
-                for filename in filenames:
-                    subfile_path = dirpath + filename
-                    relative_dir = dirpath[len(file_full_path):]
-                    s3_tool_sub_path = tool_id + '/' + relative_dir + '/' + filename
-                    s3_client.meta.client.upload_file(subfile_path, s3_tool_location, s3_tool_sub_path)
+            if os.path.isdir(file_full_path):
+                if not file_full_path.endswith('/'):
+                    file_full_path += '/'
+                for dirpath, dirnames, filenames in os.walk(file_full_path):
+                    for filename in filenames:
+                        subfile_path = dirpath + filename
+                        relative_dir = dirpath[len(file_full_path):]
+                        s3_tool_sub_path = tool_id + '/' + relative_dir + '/' + filename
+                        s3_client.meta.client.upload_file(subfile_path, s3_tool_location, s3_tool_sub_path)
+            else:
+                s3_tool_sub_path = tool_id + '/' + file
+                s3_client.meta.client.upload_file(file_full_path, s3_tool_location, s3_tool_sub_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)
         logger.error("Error while uploading files to s3 tool location. Error " + str(error))
