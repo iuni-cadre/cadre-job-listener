@@ -53,3 +53,7 @@ if cadre_meta_connection_pool:
 mag_driver = GraphDatabase.driver(util.config_reader.get_mag_graph_db_url(),
                                   auth=(util.config_reader.get_mag_graph_db_username(), util.config_reader.get_mag_graph_db_pwd()),
                                   max_connection_lifetime=3600*24*30, keep_alive=True)
+
+wos_driver = GraphDatabase.driver(util.config_reader.get_wos_graph_db_url(),
+                                  auth=(util.config_reader.get_wos_graph_db_username(), util.config_reader.get_wos_graph_db_pwd()),
+                                  max_connection_lifetime=3600*24*30, keep_alive=True)
