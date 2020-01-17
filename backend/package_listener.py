@@ -305,7 +305,7 @@ def poll_queue():
                         # delete succeeded pods
                         kube_delete_empty_pods(jhub_namespace, "Succeeded")
                         # delete error pods
-                        kube_delete_empty_pods(jhub_namespace, "Error")
+                        kube_delete_empty_pods(jhub_namespace, "Failed")
                         body = kube_create_job_object(job_name,
                                                       image_name,
                                                       tool_id,
