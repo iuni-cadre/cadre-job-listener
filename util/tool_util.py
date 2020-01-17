@@ -104,7 +104,9 @@ def upload_tool_scripts_to_s3(files, tool_id, username):
                         s3_tool_sub_path = tool_id + '/' + relative_dir + '/' + filename
                         s3_client.meta.client.upload_file(subfile_path, s3_tool_location, s3_tool_sub_path)
             else:
-                s3_tool_sub_path = tool_id + '/' + file
+                file_name = os.path.basename(file_full_path)
+                s3_tool_sub_path = tool_id + '/' + file_name
+                logger.info(s3_tool_sub_path)
                 s3_client.meta.client.upload_file(file_full_path, s3_tool_location, s3_tool_sub_path)
     except (Exception) as error:
         traceback.print_tb(error.__traceback__)

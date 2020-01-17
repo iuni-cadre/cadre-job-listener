@@ -153,7 +153,7 @@ def poll_queue():
                     efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
                     efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
                     efs_path = efs_root + efs_subpath
-                    efs_tool_dir = efs_path + '/tools/' + tool_id
+                    efs_tool_dir = efs_path + '/' + username + '/tools/' + tool_id
                     if not os.path.exists(efs_tool_dir):
                         os.makedirs(efs_tool_dir)
                     logger.info(docker_s3_root)    
