@@ -458,12 +458,14 @@ def generate_csv_fields_neo4j_mag(output_filters):
 
 def generate_output_string_neo4j_wos(output_filters):
     logger.info(output_filters)
+    graph_output_fields = []
     for output in output_filters:
         logger.info(output)
         if output in output_fileters_map_wos_graph:
-            output_filters.remove(output)
-            output_filters.append(output_fileters_map_wos_graph[output])
-    output_string = ",".join(output_filters)
+            graph_output_fields.append(output_fileters_map_wos_graph[output])
+        else:
+            graph_output_fields.append(output)
+    output_string = ",".join(graph_output_fields)
     logger.info(output_string)
     return output_string
 
@@ -575,7 +577,7 @@ def poll_queue():
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'references':
-                                logger.info('network_query_type')
+                                logger.info(network_query_type)
                                 network_enabled = True
                                 if 'id' not in output_filters_single:
                                     output_filters_single.append('id')
