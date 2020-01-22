@@ -390,7 +390,7 @@ def get_cadre_efs_subpath_query_results_listener():
 def get_cadre_efs_root_neo4j_mag_output_listener():
     try:
         config = get_cadre_config()
-        efs_root_datasets = config['EFS']['efs-root-mag_neo4j-import-listener']
+        efs_root_datasets = config['EFS']['efs-root-mag-neo4j-import-listener']
         return efs_root_datasets
     except Exception as e:
         traceback.print_tb(e.__traceback__)
@@ -401,7 +401,7 @@ def get_cadre_efs_root_neo4j_mag_output_listener():
 def get_cadre_efs_root_neo4j_wos_output_listener():
     try:
         config = get_cadre_config()
-        efs_root_datasets = config['EFS']['efs-root-wos_neo4j-import-listener']
+        efs_root_datasets = config['EFS']['efs-root-wos-neo4j-import-listener']
         return efs_root_datasets
     except Exception as e:
         traceback.print_tb(e.__traceback__)

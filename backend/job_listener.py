@@ -49,7 +49,7 @@ sqs_client = boto3.client('sqs',
 
 queue_url = util.config_reader.get_job_queue_url()
 
-output_fileters_map_graph = {
+output_fileters_map_mag_graph = {
     "author_sequence_number": "author_sequence_number::varchar",
     "date": "date::varchar",
     "paper_reference_count": "paper_reference_count::varchar",
@@ -120,7 +120,7 @@ degree_0_fields_map_mag_graph = {
 
 
 degree_0_fields_map_wos_graph = {
-    "wos_id": "row.wos_id as wos_id,",
+    "id": "row.id as wos_id,",
     "year": "row.year as year,",
     "number": "row.number as number,",
     "issue": "row.issue as issue, ",
@@ -224,7 +224,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
     #               "paper_publisher,issue,paper_abstract,paper_first_page,paper_last_page,paper_reference_count::varchar,"\
     #               "paper_citation_count::varchar,paper_estimated_citation::varchar,conference_display_name,journal_display_name,"\
     #               "journal_issn,journal_publisher"
-    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.final_mag_interface_table WHERE '
+    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.interface_table WHERE '
     for item in query_json:
         if 'value' in item:
             value = item['value']
@@ -506,12 +506,13 @@ def poll_queue():
                         type = output_filed['type']
                         if type == 'single':
                             field = output_filed['field']
-                            output_filters_single.append(field)
+                            if field == 'wos_id':
+                                output_filters_single.append('id')
+                            else:
+                                output_filters_single.append(field)
                         else:
                             network_query_type = output_filed['field']
                             degree = int(output_filed['degree'])
-                            if 'paper_id' not in output_filters_single:
-                                output_filters_single.append('paper_id')
                     output_filter_string = ",".join(output_filters_single)
                     # Updating the job status in the job database as running
                     logger.info(network_query_type)
@@ -548,8 +549,8 @@ def poll_queue():
                             if network_query_type == 'citations':
                                 logger.info('citations')
                                 network_enabled = True
-                                if 'wos_id' not in output_filters_single:
-                                    output_filters_single.append('wos_id')
+                                if 'id' not in output_filters_single:
+                                    output_filters_single.append('id')
                                 # generate output filter string for neo4j
                                 output_filter_string = generate_output_string_neo4j_wos(output_filters_single)
                                 logger.info(output_filter_string)
@@ -566,7 +567,6 @@ def poll_queue():
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
-
                                     for record in degree_0_results:
                                         entire_result_degree_0.append(record)
                                     for record in edge_result:
@@ -648,6 +648,7 @@ def poll_queue():
                                 if 'paper_id' not in output_filters_single:
                                     output_filters_single.append('paper_id')
                                 # generate output filter string for neo4j
+                                logger.info(output_filters_single)
                                 output_filter_string = generate_output_string_neo4j_mag(output_filters_single)
                                 logger.info(output_filter_string)
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
@@ -709,19 +710,19 @@ def poll_queue():
                                     for record in node_result:
                                         node_result_degree_1.append(record)
                                 # copy files to correct EFS location and s3 locations
-                                source_csv_path = neo4j_wos_import_efs_dir + '/' + csv_name
+                                source_csv_path = neo4j_mag_import_efs_dir + '/' + csv_name
                                 target_csv_path = user_query_result_dir + '/' + csv_name
                                 logger.info(source_csv_path)
                                 logger.info(target_csv_path)
                                 copyfile(source_csv_path, target_csv_path)
 
-                                source_node_path = neo4j_wos_import_efs_dir + '/' + node_path
+                                source_node_path = neo4j_mag_import_efs_dir + '/' + node_path
                                 target_node_path = user_query_result_dir + '/' + node_path
                                 logger.info(source_node_path)
                                 logger.info(target_node_path)
                                 copyfile(source_node_path, target_node_path)
 
-                                source_edge_path = neo4j_wos_import_efs_dir + '/' + edge_path
+                                source_edge_path = neo4j_mag_import_efs_dir + '/' + edge_path
                                 target_edge_path = user_query_result_dir + '/' + edge_path
                                 logger.info(source_edge_path)
                                 logger.info(target_edge_path)
