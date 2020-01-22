@@ -706,8 +706,11 @@ def poll_queue():
                                     edge_query = get_edge_list_degree_1_mag(csv_name, edge_path)
                                     node_query = get_node_list_mag(edge_path, node_path)
                                     degree_0_results = mag_driver_session.run(degree_0_q)
+                                    logger.info('Degree 0 query executed...')
                                     edge_result = mag_driver_session.run(edge_query)
+                                    logger.info('Edge query executed...')
                                     node_result = mag_driver_session.run(node_query)
+                                    logger.info('Node query executed...')
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
@@ -756,6 +759,7 @@ def poll_queue():
                                         edge_result_degree_1.append(record)
                                     for record in node_result:
                                         node_result_degree_1.append(record)
+
                                 # copy files to correct EFS location
                                 source_csv_path = neo4j_mag_import_efs_dir + '/' + csv_name
                                 target_csv_path = user_query_result_dir + '/' + csv_name
@@ -805,8 +809,10 @@ def poll_queue():
                                 csv_file_insert_data = (job_id, csv_path, target_csv_checksum, 'MAG', 'TRUE', user_id)
                                 meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
                                 meta_connection.commit()
-                    except:
-                        print("Job ID: " + job_id)
+                    except (Exception) as error:
+                        logger.error(error)
+                        logger.error("Error while executing graph query. Error is " + str(error))
+                        logger.info("Job ID: " + job_id)
                         job_update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
                         meta_db_cursor.execute(job_update_statement, (job_id,))
