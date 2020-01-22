@@ -76,14 +76,15 @@ output_fileters_map_wos_graph = {
     "authors_wos_name": "authors_wos_name::varchar",
     "authors_id_lang": "authors_id_lang::varchar",
     "authors_email": "authors_email::varchar",
-    "reference": "reference::varchar",
+    "\\'references\\'": "\\'references\\'::varchar",
     "issn": "issn::varchar",
     "doi": "doi::varchar",
     "title": "title::varchar",
-    "journals_name": "journals_name::varchar",
-    "journals_abbrev": "journals_abbrev::varchar",
-    "journals_iso": "journals_iso::varchar",
-    "abstract_paragraphs": "abstract_paragraphs::varchar"
+    "journal_name": "journals_name::varchar",
+    "journal_abbrev": "journals_abbrev::varchar",
+    "journal_iso": "journals_iso::varchar",
+    "abstract_paragraph": "abstract_paragraphs::varchar",
+    "reference_count": "reference_count::varchar"
 }
 
 degree_0_fields_map_mag_graph = {
@@ -120,7 +121,7 @@ degree_0_fields_map_mag_graph = {
 
 
 degree_0_fields_map_wos_graph = {
-    "id": "row.id as wos_id,",
+    "id": "row.wos_id as wos_id,",
     "year": "row.year as year,",
     "number": "row.number as number,",
     "issue": "row.issue as issue, ",
@@ -139,15 +140,15 @@ degree_0_fields_map_wos_graph = {
     "authors_wos_name": "row.authors_wos_name as authors_wos_name,",
     "authors_id_lang": "row.authors_id_lang as authors_id_lang,",
     "authors_email": "row.authors_email as authors_email,",
-    "reference": "row.reference as reference,",
+    "\\'references\\'": "row.reference as reference,",
     "issn": "row.issn as issn,",
     "doi": "row.doi as doi,",
     "title": "row.title as title,",
-    "journals_name": "row.journals_name as journal_name,",
-    "journals_abbrev": "row.journals_abbrev as journal_abbrev,",
-    "journals_iso": "row.journals_iso as journal_iso,",
-    "abstract_paragraphs": "row.abstract_paragraphs as abstract_paragraph',"
-
+    "journal_name": "row.journals_name as journal_name,",
+    "journal_abbrev": "row.journals_abbrev as journal_abbrev,",
+    "journal_iso": "row.journals_iso as journal_iso,",
+    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph',",
+    "reference_count": "row.reference_count as reference_count',"
 }
 
 
@@ -171,7 +172,7 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
                         # year_operands.append(operand)
-            elif field == 'journals_name':
+            elif field == 'journal_name':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
@@ -179,7 +180,7 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     value = "'{}'".format(value)
                     if network_enabled:
                         value = value.replace("'", "\\'")
-                    logger.info("Journals Name: " + value)
+                    logger.info("Journal Name: " + value)
                     interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # journals.append(value)
                     # journal_operands.append(operand)
@@ -335,7 +336,7 @@ def degree_0_query(interface_query, csv_file_name, csv_field_names):
     return neo4j_query
 
 
-def get_edge_list_degree_1(csv_file_name, edge_file_name):
+def get_edge_list_degree_1_mag(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
     logger.info(csv_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
@@ -345,7 +346,7 @@ def get_edge_list_degree_1(csv_file_name, edge_file_name):
     return neo4j_query
 
 
-def get_edge_list_degree_2(csv_file_name, edge_file_name):
+def get_edge_list_degree_2_mag(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
 
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
@@ -357,7 +358,7 @@ def get_edge_list_degree_2(csv_file_name, edge_file_name):
     return neo4j_query
 
 
-def get_node_list(edge_file_name, node_file_name):
+def get_node_list_mag(edge_file_name, node_file_name):
     edge_file_name = "file:///" + edge_file_name
     logger.info(edge_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
@@ -388,25 +389,49 @@ def get_node_list(edge_file_name, node_file_name):
     return neo4j_query
 
 
-def degree_1_query(interface_query, node_file_name, edge_file_name):
-    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
-                  " '" + interface_query + \
-                  "') YIELD row MATCH (n:paper)<-[r:REFERENCES]-(m:paper)" \
-                  " WHERE n.paper_id = row.paper_id WITH collect(distinct m) + n as nodes, " \
-                  "collect(distinct r) as relationships CALL apoc.export.csv.data([], relationships, '" + edge_file_name + "', {}) " \
-                  "YIELD file as edgefile CALL apoc.export.csv.data(nodes, [], '" + node_file_name + "', {}) " \
-                  "YIELD file as nodefile RETURN nodes, relationships"
+def get_edge_list_degree_1_wos(csv_file_name, edge_file_name):
+    csv_file_name = "file:///" + csv_file_name
+    logger.info(csv_file_name)
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
+                  "RETURN n.paper_id AS From , m.paper_id AS To','" + edge_file_name + "', {})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
-def degree_2_query(interface_query, node_file_name, edge_file_name):
-    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
-                  " '" + interface_query + \
-                  "') YIELD row MATCH (n:paper)<-[r:REFERENCES]-(m:paper)<-[s:REFERENCES]-(o:paper)" \
-                  " WHERE n.paper_id = row.paper_id WITH collect(distinct m)  + collect(distinct o) + n as nodes, " \
-                  "collect(distinct r) + collect(distinct s) as relationships CALL apoc.export.csv.data(nodes, [],  '" + node_file_name + "', {}) " \
-                  "YIELD file as nodefile CALL apoc.export.csv.data([], relationships, '" + edge_file_name + "', {}) " \
-                  "YIELD file as edgefile RETURN nodes, relationships"
+def get_edge_list_degree_2_wos(csv_file_name, edge_file_name):
+    csv_file_name = "file:///" + csv_file_name
+
+    # neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+    #               " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
+    #               "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
+    #               " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
+    #               "  UNWIND (data1 + data2) AS data RETURN data.from AS From, data.to AS To','" + edge_file_name + "',{})"
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
+                  "RETURN n.paper_id AS From , m.paper_id AS To UNION ALL LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " as pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`})<-[:REFERENCES]-(m:paper)<-[:REFERENCES]-(o:paper)" + \
+                  "  RETURN m.paper_id AS From, o.paper_id AS To','" + edge_file_name + "',{})"
+    logger.info(neo4j_query)
+    return neo4j_query
+
+
+def get_node_list_wos(edge_file_name, node_file_name):
+    edge_file_name = "file:///" + edge_file_name
+    logger.info(edge_file_name)
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
+                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`From`, edge.`To`] " \
+                  "RETURN DISTINCT(n.paper_id) AS paper_id," \
+                  "n.pubyear AS pubyear,"\
+                  "n.issue AS issue,"\
+                  "n.issn AS issn,"\
+                  "n.has_abstract AS has_abstract,"\
+                  "n.authors_full_name AS authors_full_name,"\
+                  "n.journal_name AS journal_name,"\
+                  "n.pubtype AS pubtype,"\
+                  "n.title AS title,"\
+                  "n.vol AS vol','" + node_file_name + "', {})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
@@ -508,12 +533,15 @@ def poll_queue():
                             field = output_filed['field']
                             if field == 'wos_id':
                                 output_filters_single.append('id')
+                            elif field == 'references':
+                                output_filters_single.append("\\'references\\'")
                             else:
                                 output_filters_single.append(field)
                         else:
                             network_query_type = output_filed['field']
                             degree = int(output_filed['degree'])
                     output_filter_string = ",".join(output_filters_single)
+                    logger.info(output_filter_string)
                     # Updating the job status in the job database as running
                     logger.info(network_query_type)
                     updateStatement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
@@ -559,8 +587,8 @@ def poll_queue():
                                 degree_0_field_names = generate_csv_fields_neo4j_wos(output_filters_single)
                                 if degree == 1:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
-                                    edge_query = get_edge_list_degree_1(csv_name, edge_path)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    edge_query = get_edge_list_degree_1_wos(csv_name, edge_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
                                     degree_0_results = wos_driver_session.run(degree_0_q)
                                     edge_result = wos_driver_session.run(edge_query)
                                     node_result = wos_driver_session.run(node_query)
@@ -576,9 +604,9 @@ def poll_queue():
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
                                     logger.info(degree_0_q)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
+                                    edge_query = get_edge_list_degree_2_wos(csv_name, edge_path)
                                     logger.info(edge_query)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
                                     logger.info(node_query)
                                     degree_0_results = wos_driver_session.run(degree_0_q)
                                     edge_result = wos_driver_session.run(edge_query)
@@ -596,8 +624,8 @@ def poll_queue():
                                     logger.info(
                                         "Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    edge_query = get_edge_list_degree_2_wos(csv_name, edge_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
                                     degree_0_results = wos_driver_session.run(degree_0_q)
                                     edge_result = wos_driver_session.run(edge_query)
                                     node_result = wos_driver_session.run(node_query)
@@ -656,8 +684,8 @@ def poll_queue():
                                 degree_0_field_names = generate_csv_fields_neo4j_mag(output_filters_single)
                                 if degree == 1:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
-                                    edge_query = get_edge_list_degree_1(csv_name, edge_path)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    edge_query = get_edge_list_degree_1_mag(csv_name, edge_path)
+                                    node_query = get_node_list_mag(edge_path, node_path)
                                     degree_0_results = mag_driver_session.run(degree_0_q)
                                     edge_result = mag_driver_session.run(edge_query)
                                     node_result = mag_driver_session.run(node_query)
@@ -674,9 +702,9 @@ def poll_queue():
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
                                     logger.info(degree_0_q)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
+                                    edge_query = get_edge_list_degree_2_mag(csv_name, edge_path)
                                     logger.info(edge_query)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    node_query = get_node_list_mag(edge_path, node_path)
                                     logger.info(node_query)
                                     degree_0_results = mag_driver_session.run(degree_0_q)
                                     edge_result = mag_driver_session.run(edge_query)
@@ -693,8 +721,8 @@ def poll_queue():
                                 else:
                                     logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    edge_query = get_edge_list_degree_2_mag(csv_name, edge_path)
+                                    node_query = get_node_list_mag(edge_path, node_path)
                                     degree_0_results = mag_driver_session.run(degree_0_q)
                                     edge_result = mag_driver_session.run(edge_query)
                                     node_result = mag_driver_session.run(node_query)
