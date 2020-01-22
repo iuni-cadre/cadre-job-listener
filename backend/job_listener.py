@@ -21,6 +21,7 @@ conf = cadre + '/conf'
 sys.path.append(cadre)
 
 import util.config_reader
+import util.tool_util
 from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver, wos_driver
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
@@ -521,6 +522,7 @@ def poll_queue():
                     filters = query_json['filters']
                     job_id = query_json['job_id']
                     username = query_json['username']
+                    user_id = query_json['user_id']
                     output_fields = query_json['output']
 
                     # Delete received message from queue
@@ -546,17 +548,10 @@ def poll_queue():
                     logger.info(output_filter_string)
                     # Updating the job status in the job database as running
                     logger.info(network_query_type)
-                    updateStatement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    job_update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
-                    meta_db_cursor.execute(updateStatement, (job_id,))
+                    meta_db_cursor.execute(job_update_statement, (job_id,))
                     meta_connection.commit()
-                    s3_client = boto3.resource('s3',
-                                               aws_access_key_id=util.config_reader.get_aws_access_key(),
-                                               aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
-                                               region_name=util.config_reader.get_aws_region())
-                    root_bucket_name = 'cadre-query-result'
-                    bucket_location = username + '/query-results/'
-
                     try:
                         efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
                         efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
@@ -574,6 +569,9 @@ def poll_queue():
                         edge_path = job_id + '_edges.csv'
                         logger.info(node_path)
                         logger.info(edge_path)
+                        file_insert_statement = "INSERT INTO query_result" \
+                                                "(job_id,efs_path, file_checksum, data_type, authenticity, created_by, created_on) " \
+                                                "VALUES(%s,%s,%s,%s,%s,%s,current_timestamp )"
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
                             if network_query_type == 'references':
@@ -642,7 +640,7 @@ def poll_queue():
                                         edge_result_degree_1.append(record)
                                     for record in node_result:
                                         node_result_degree_1.append(record)
-                                # copy files to correct EFS location and s3 locations
+                                # copy files to correct EFS location
                                 source_csv_path = neo4j_wos_import_efs_dir + '/' + csv_name
                                 target_csv_path = user_query_result_dir + '/' + csv_name
                                 logger.info(source_csv_path)
@@ -660,7 +658,22 @@ def poll_queue():
                                 logger.info(source_edge_path)
                                 logger.info(target_edge_path)
                                 copyfile(source_edge_path, target_edge_path)
-                                # driver_session.commit()
+
+                                # get checksums and update the db
+                                target_csv_checksum = util.tool_util.get_file_checksum(target_csv_path)
+                                target_edge_file_checksum = util.tool_util.get_file_checksum(target_edge_path)
+                                target_node_file_checksum  = util.tool_util.get_file_checksum(target_node_path)
+
+                                csv_file_insert_data = (job_id, target_csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
+                                edge_file_insert_data = (job_id, target_edge_path, target_edge_file_checksum, 'WOS', 'TRUE', user_id)
+                                node_file_insert_data = (job_id, target_node_path, target_node_file_checksum, 'WOS', 'TRUE', user_id)
+                                # Execute the SQL Query
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, edge_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, node_file_insert_data)
+                                meta_connection.commit()
                             else:
                                 network_enabled = False
                                 interface_query = generate_wos_query(output_filter_string, filters, network_enabled)
@@ -668,8 +681,12 @@ def poll_queue():
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
-                                s3_client.meta.client.upload_file(csv_path, root_bucket_name,
-                                                                  bucket_location + job_id + '.csv')
+                                target_csv_checksum = util.tool_util.get_file_checksum(csv_path)
+
+                                csv_file_insert_data = (job_id, csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+
                         else:
                             logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citations':
@@ -739,7 +756,7 @@ def poll_queue():
                                         edge_result_degree_1.append(record)
                                     for record in node_result:
                                         node_result_degree_1.append(record)
-                                # copy files to correct EFS location and s3 locations
+                                # copy files to correct EFS location
                                 source_csv_path = neo4j_mag_import_efs_dir + '/' + csv_name
                                 target_csv_path = user_query_result_dir + '/' + csv_name
                                 logger.info(source_csv_path)
@@ -757,7 +774,25 @@ def poll_queue():
                                 logger.info(source_edge_path)
                                 logger.info(target_edge_path)
                                 copyfile(source_edge_path, target_edge_path)
-                                # driver_session.commit()
+
+                                # get checksums and update the db
+                                target_csv_checksum = util.tool_util.get_file_checksum(target_csv_path)
+                                target_edge_file_checksum = util.tool_util.get_file_checksum(target_edge_path)
+                                target_node_file_checksum = util.tool_util.get_file_checksum(target_node_path)
+
+                                csv_file_insert_data = (
+                                job_id, target_csv_path, target_csv_checksum, 'MAG', 'TRUE', user_id)
+                                edge_file_insert_data = (
+                                job_id, target_edge_path, target_edge_file_checksum, 'MAG', 'TRUE', user_id)
+                                node_file_insert_data = (
+                                job_id, target_node_path, target_node_file_checksum, 'MAG', 'TRUE', user_id)
+                                # Execute the SQL Query
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, edge_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, node_file_insert_data)
+                                meta_connection.commit()
                             else:
                                 network_enabled = False
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
@@ -765,26 +800,29 @@ def poll_queue():
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
-                                s3_client.meta.client.upload_file(csv_path, root_bucket_name,
-                                                                  bucket_location + job_id + '.csv')
+                                target_csv_checksum = util.tool_util.get_file_checksum(csv_path)
+
+                                csv_file_insert_data = (job_id, csv_path, target_csv_checksum, 'MAG', 'TRUE', user_id)
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
                     except:
                         print("Job ID: " + job_id)
-                        updateStatement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                        job_update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
-                        meta_db_cursor.execute(updateStatement, (job_id,))
+                        meta_db_cursor.execute(job_update_statement, (job_id,))
                         meta_connection.commit()
 
                     print("Job ID: " + job_id)
-                    updateStatement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    job_update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
-                    meta_db_cursor.execute(updateStatement, (job_id,))
+                    meta_db_cursor.execute(job_update_statement, (job_id,))
                     meta_connection.commit()
                 except (Exception, psycopg2.Error) as error:
                     traceback.print_tb(error.__traceback__)
                     logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
-                    updateStatement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    job_update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
-                    meta_db_cursor.execute(updateStatement, (job_id,))
+                    meta_db_cursor.execute(job_update_statement, (job_id,))
                     meta_connection.commit()
                 finally:
                     # Closing database connection.

@@ -8,6 +8,7 @@ import jinja2
 import json
 import errno
 import shutil
+import hashlib
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 cadre = os.path.dirname(abspath)
@@ -199,5 +200,20 @@ def copy_files(input_path, output_path):
         for file in filenames:
             shutil.copyfile(dirpath + '/' + file, structure + '/' + file)
 
-# if __name__ == "__main__":
-#     copy_files('/home/chathuri/Downloads/a/cloudera-errors.png', '/home/chathuri/Downloads/b')
+
+def get_file_checksum(file_path):
+    try:
+        with open(file_path, "r", encoding='utf-8') as file_to_check:
+            # read contents of the file
+            data = file_to_check.read()
+            # pipe contents of the file through
+            md5_returned = hashlib.md5(data.encode('utf-8')).hexdigest()
+            return md5_returned
+    except (Exception) as error:
+            traceback.print_tb(error.__traceback__)
+            logger.error(error)
+            logger.error("Error while getting checksum for the file " + file_path + ". Error is " + str(error))
+
+
+if __name__ == "__main__":
+    print(get_file_checksum('/home/chathuri/Downloads/a/config.yml'))
