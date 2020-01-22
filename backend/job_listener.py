@@ -574,8 +574,8 @@ def poll_queue():
                         logger.info(edge_path)
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
-                            if network_query_type == 'citations':
-                                logger.info('citations')
+                            if network_query_type == 'references':
+                                logger.info('network_query_type')
                                 network_enabled = True
                                 if 'id' not in output_filters_single:
                                     output_filters_single.append('id')
