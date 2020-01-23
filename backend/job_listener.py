@@ -122,7 +122,7 @@ degree_0_fields_map_mag_graph = {
 
 
 degree_0_fields_map_wos_graph = {
-    "id": "row.wos_id as wos_id,",
+    "id": "row.id as wos_id,",
     "year": "row.year as year,",
     "number": "row.number as number,",
     "issue": "row.issue as issue, ",
