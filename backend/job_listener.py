@@ -77,7 +77,7 @@ output_fileters_map_wos_graph = {
     "authors_wos_name": "authors_wos_name::varchar",
     "authors_id_lang": "authors_id_lang::varchar",
     "authors_email": "authors_email::varchar",
-    "\\'references\\'": "\\'references\\'::varchar",
+    "reference": "reference::varchar",
     "issn": "issn::varchar",
     "doi": "doi::varchar",
     "title": "title::varchar",
@@ -141,7 +141,7 @@ degree_0_fields_map_wos_graph = {
     "authors_wos_name": "row.authors_wos_name as authors_wos_name,",
     "authors_id_lang": "row.authors_id_lang as authors_id_lang,",
     "authors_email": "row.authors_email as authors_email,",
-    "\\'references\\'": "row.reference as reference,",
+    "reference": "row.reference as reference,",
     "issn": "row.issn as issn,",
     "doi": "row.doi as doi,",
     "title": "row.title as title,",
@@ -342,7 +342,7 @@ def get_edge_list_degree_1_mag(csv_file_name, edge_file_name):
     logger.info(csv_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
                   " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
-                  "RETURN n.paper_id AS From , m.paper_id AS To','" + edge_file_name + "', {})"
+                  "RETURN n.paper_id AS Citing , m.paper_id AS Cited','" + edge_file_name + "', {})"
     logger.info(neo4j_query)
     return neo4j_query
 
@@ -354,7 +354,7 @@ def get_edge_list_degree_2_mag(csv_file_name, edge_file_name):
                   " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
                   "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
                   " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
-                  "  UNWIND (data1 + data2) AS data RETURN data.from AS From, data.to AS To','" + edge_file_name + "',{})"
+                  "  UNWIND (data1 + data2) AS data RETURN data.from AS Citing, data.to AS Cited','" + edge_file_name + "',{})"
     logger.info(neo4j_query)
     return neo4j_query
 
@@ -363,7 +363,7 @@ def get_node_list_mag(edge_file_name, node_file_name):
     edge_file_name = "file:///" + edge_file_name
     logger.info(edge_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
-                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`From`, edge.`To`] " \
+                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`Citing`, edge.`Cited`] " \
                   "RETURN DISTINCT(n.paper_id) AS paper_id," \
                   "n.date AS date,"\
                   "n.journal_id AS journal_id,"\
@@ -395,24 +395,18 @@ def get_edge_list_degree_1_wos(csv_file_name, edge_file_name):
     logger.info(csv_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
                   " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
-                  "RETURN n.paper_id AS From , m.paper_id AS To','" + edge_file_name + "', {})"
+                  "RETURN n.paper_id AS Citing , m.paper_id AS Cited','" + edge_file_name + "', {})"
     logger.info(neo4j_query)
     return neo4j_query
 
 
 def get_edge_list_degree_2_wos(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
-
-    # neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
-    #               " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
-    #               "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
-    #               " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
-    #               "  UNWIND (data1 + data2) AS data RETURN data.from AS From, data.to AS To','" + edge_file_name + "',{})"
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
                   " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
-                  "RETURN n.paper_id AS From , m.paper_id AS To UNION ALL LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
-                  " as pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`})<-[:REFERENCES]-(m:paper)<-[:REFERENCES]-(o:paper)" + \
-                  "  RETURN m.paper_id AS From, o.paper_id AS To','" + edge_file_name + "',{})"
+                  "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
+                  " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
+                  "  UNWIND (data1 + data2) AS data RETURN data.from AS Citing, data.to AS Cited','" + edge_file_name + "',{})"
     logger.info(neo4j_query)
     return neo4j_query
 
@@ -421,7 +415,7 @@ def get_node_list_wos(edge_file_name, node_file_name):
     edge_file_name = "file:///" + edge_file_name
     logger.info(edge_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
-                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`From`, edge.`To`] " \
+                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`Citing`, edge.`Cited`] " \
                   "RETURN DISTINCT(n.paper_id) AS paper_id," \
                   "n.pubyear AS pubyear,"\
                   "n.issue AS issue,"\
@@ -662,7 +656,7 @@ def poll_queue():
                                 # get checksums and update the db
                                 target_csv_checksum = util.tool_util.get_file_checksum(target_csv_path)
                                 target_edge_file_checksum = util.tool_util.get_file_checksum(target_edge_path)
-                                target_node_file_checksum  = util.tool_util.get_file_checksum(target_node_path)
+                                target_node_file_checksum = util.tool_util.get_file_checksum(target_node_path)
 
                                 csv_file_insert_data = (job_id, target_csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
                                 edge_file_insert_data = (job_id, target_edge_path, target_edge_file_checksum, 'WOS', 'TRUE', user_id)
