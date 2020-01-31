@@ -264,7 +264,7 @@ def poll_queue():
                         for input_file in input_files:
                             s3_full_location = input_file[0]
                             s3_file_name = get_file_name_s3(s3_full_location)
-                            logger.info(file_name)
+                            logger.info(s3_file_name)
                             s3_archive_folder = s3_full_location[len(s3_archive_root) + 2:]
                             logger.info(s3_archive_folder)
                             input_dir = user_package_run_dir + '/input_files/'

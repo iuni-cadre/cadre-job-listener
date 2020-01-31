@@ -93,23 +93,22 @@ def poll_queue():
 
             for message in response['Messages']:
                 receipt_handle = message['ReceiptHandle']
+                message_body = message['Body']
+                logger.info("Received message id " + message['MessageId'])
+                query_json = json.loads(message_body)
+                logger.info(query_json)
+
+                job_id = query_json['job_id']
+                tool_id = query_json['tool_id']
+                username = query_json['username']
+                user_id = query_json['user_id']
+                tool_name = query_json['name']
+                description = query_json['description']
+                install_commands = query_json['install_commands']
+                file_paths = query_json['file_paths']
+                entrypoint_script = query_json['entrypoint']
+                environment = query_json['environment']
                 try:
-                    message_body = message['Body']
-                    logger.info("Received message id " + message['MessageId'])
-                    query_json = json.loads(message_body)
-                    logger.info(query_json)
-
-                    job_id = query_json['job_id']
-                    tool_id = query_json['tool_id']
-                    username = query_json['username']
-                    user_id = query_json['user_id']
-                    tool_name = query_json['name']
-                    description = query_json['description']
-                    install_commands = query_json['install_commands']
-                    file_paths = query_json['file_paths']
-                    entrypoint_script = query_json['entrypoint']
-                    environment = query_json['environment']
-
                     if 'python' is environment:
                         command = 'python'
                     else:
@@ -173,6 +172,10 @@ def poll_queue():
                 except (Exception, psycopg2.Error) as error:
                     traceback.print_tb(error.__traceback__)
                     logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
+                    update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    # Execute the SQL Query
+                    meta_db_cursor.execute(update_statement, (job_id,))
+                    meta_connection.commit()
                 finally:
                     # Closing database connection.
                     meta_db_cursor.close()

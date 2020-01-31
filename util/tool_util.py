@@ -100,9 +100,12 @@ def upload_tool_scripts_to_s3(files, tool_id, username):
                     file_full_path += '/'
                 for dirpath, dirnames, filenames in os.walk(file_full_path):
                     for filename in filenames:
-                        subfile_path = dirpath + filename
+                        logger.info(dirpath)
+                        logger.info(filename)
+                        subfile_path = dirpath + '/' + filename
                         relative_dir = dirpath[len(file_full_path):]
                         s3_tool_sub_path = tool_id + '/' + relative_dir + '/' + filename
+                        logger.info(s3_tool_sub_path)
                         s3_client.meta.client.upload_file(subfile_path, s3_tool_location, s3_tool_sub_path)
             else:
                 file_name = os.path.basename(file_full_path)
