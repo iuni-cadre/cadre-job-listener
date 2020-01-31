@@ -145,7 +145,7 @@ def poll_queue():
                     logger.info('Dockerfile created and uploaded to S3')
 
                     insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
-                    data = (tool_id, description, tool_name, entrypoint_script, command, user_id)
+                    data = (tool_id, description, tool_name, entrypoint_relative_path[0], command, user_id)
                     meta_db_cursor.execute(insert_q, data)
                     meta_connection.commit()
 
