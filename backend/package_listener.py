@@ -186,6 +186,10 @@ def kube_create_job_object(name,
     return pod
 
 
+def get_file_name_s3(s3_full_path):
+    return os.path.basename(s3_full_path)
+
+
 def poll_queue():
     while True:
         # Receive message from SQS queue
@@ -258,18 +262,17 @@ def poll_queue():
                         input_files = meta_db_cursor.fetchall()
                         logger.info(input_files)
                         for input_file in input_files:
-                            s3_location_root = input_file[0]
-                            s3_archive_folder = s3_location_root[len(s3_archive_root) + 2:]
+                            s3_full_location = input_file[0]
+                            s3_file_name = get_file_name_s3(s3_full_location)
+                            logger.info(file_name)
+                            s3_archive_folder = s3_full_location[len(s3_archive_root) + 2:]
                             logger.info(s3_archive_folder)
-                            s3_file_name = input_file[1]
                             input_dir = user_package_run_dir + '/input_files/'
                             input_copy = input_dir + s3_file_name
                             if not os.path.exists(input_dir):
                                 os.makedirs(input_dir)
                             # download file from s3 and copy it to package_run dir in efs
-                            folder_path = s3_archive_folder + '/' + s3_file_name
-                            logger.info(folder_path)
-                            s3_client.meta.client.download_file(s3_archive_root, folder_path, input_copy)
+                            s3_client.meta.client.download_file(s3_archive_root, s3_archive_folder, input_copy)
                             input_file_list.append(s3_file_name)
 
                     # get tool info
