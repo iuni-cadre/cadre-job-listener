@@ -59,9 +59,9 @@ def upload_image_dockerhub(tool_name,
     logger.info(tool_id)
     logger.info(docker_path)
 
-    client.images.build(path=docker_path, tag=tool_name, forcerm=True)
+    client.images.build(path=docker_path, tag=tool_id, forcerm=True)
     logger.info('Image built successfully')
-    image = client.images.get(tool_name)
+    image = client.images.get(tool_id)
     docker_repo = util.config_reader.get_cadre_dockerhub_repo()
     image.tag(docker_repo, tag=tool_id)
     auth_config_payload = {'username': util.config_reader.get_cadre_dockerhub_username(), 'password': util.config_reader.get_cadre_dockerhub_pwd()}
