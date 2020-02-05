@@ -166,7 +166,7 @@ def kube_create_job_object(name,
     volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name=util.config_reader.get_cadre_pv_name(), sub_path=volume_subpath)]
 
     image_with_tag = image_name + ":" + container_tag
-    container = client.V1Container(name=container_name,
+    container = client.V1Container(name=container_tag,
                                    image=image_with_tag,
                                    env=env_list,
                                    command=command_list,
