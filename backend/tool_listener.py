@@ -126,11 +126,7 @@ def poll_queue():
                         copy_files.append(file_info)
                     entrypoint_script = [entrypoint_script]
                     entrypoint_relative_path = util.tool_util.get_relative_paths_tool_scripts(entrypoint_script, username)
-                    requirements_script = [requirements_script]
-                    requirements_relative_path_list = util.tool_util.get_relative_paths_tool_scripts(requirements_script,
-                                                                                              username)
-                    requirements_relative_path = requirements_relative_path_list[0]
-                    logger.info(requirements_relative_path)
+
                     install_commands_list = []
                     if len(install_commands) > 0:
                         if ',' in install_commands:
@@ -141,9 +137,16 @@ def poll_queue():
                         else:
                             install_commands_list.append({'name': install_commands})
 
-                    if requirements_relative_path != '':
-                        requirements_command = 'pip install -r ' + requirements_relative_path
-                        install_commands_list.append({'name': requirements_command})
+                    if requirements_script != '':
+                        requirements_script = [requirements_script]
+                        requirements_relative_path_list = util.tool_util.get_relative_paths_tool_scripts(requirements_script,
+                                                                                                  username)
+                        requirements_relative_path = requirements_relative_path_list[0]
+                        logger.info(requirements_relative_path)
+                        if requirements_relative_path != '':
+                            requirements_command = 'pip install -r ' + requirements_relative_path
+                            install_commands_list.append({'name': requirements_command})
+
                     # create dockerfile
                     docker_template_json = {
                         'copy_files': copy_files,
