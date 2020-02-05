@@ -130,10 +130,8 @@ def poll_queue():
                     requirements_relative_path_list = util.tool_util.get_relative_paths_tool_scripts(requirements_script,
                                                                                               username)
                     requirements_relative_path = requirements_relative_path_list[0]
+                    logger.info(requirements_relative_path)
                     install_commands_list = []
-                    if requirements_relative_path != '':
-                        requirements_command = 'pip install -r ' + requirements_relative_path
-                        install_commands_list.append({'name': requirements_command})
                     if len(install_commands) > 0:
                         if ',' in install_commands:
                             commands_list = install_commands.split(",")
@@ -141,7 +139,11 @@ def poll_queue():
                                 command_info = {'name': command}
                                 install_commands_list.append(command_info)
                         else:
-                            install_commands_list = [{'name': install_commands}]                    
+                            install_commands_list.append({'name': install_commands})
+
+                    if requirements_relative_path != '':
+                        requirements_command = 'pip install -r ' + requirements_relative_path
+                        install_commands_list.append({'name': requirements_command})
                     # create dockerfile
                     docker_template_json = {
                         'copy_files': copy_files,
