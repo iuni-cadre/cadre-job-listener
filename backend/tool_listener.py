@@ -144,11 +144,6 @@ def poll_queue():
                     util.tool_util.create_python_dockerfile_and_upload_s3(tool_id, docker_template_json)
                     logger.info('Dockerfile created and uploaded to S3')
 
-                    insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
-                    data = (tool_id, description, tool_name, entrypoint_relative_path[0], command, user_id)
-                    meta_db_cursor.execute(insert_q, data)
-                    meta_connection.commit()
-
                     # download tool scripts and dockerfile from s3 to efs/tools
                     docker_s3_root = util.config_reader.get_tools_s3_root()
                     efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
@@ -168,6 +163,12 @@ def poll_queue():
                     update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
+                    meta_connection.commit()
+
+                    # insert tool query after tool dockerized
+                    insert_q = "INSERT INTO tool(tool_id,description, name, script_name, command, created_on, created_by) VALUES (%s,%s,%s,%s,%s,NOW(),%s)"
+                    data = (tool_id, description, tool_name, entrypoint_relative_path[0], command, user_id)
+                    meta_db_cursor.execute(insert_q, data)
                     meta_connection.commit()
                 except (Exception, psycopg2.Error) as error:
                     traceback.print_tb(error.__traceback__)

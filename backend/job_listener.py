@@ -474,6 +474,14 @@ def generate_csv_fields_neo4j_wos(output_filters):
     return output_string
 
 
+def get_file_name(job_id, job_name):
+    if job_id is job_name:
+        file_name = job_id
+    else:
+        file_name = job_name + '_' + job_id
+    return file_name
+
+
 def poll_queue():
     while True:
         # Receive message from SQS queue
@@ -515,6 +523,7 @@ def poll_queue():
                     dataset = query_json['dataset']
                     filters = query_json['filters']
                     job_id = query_json['job_id']
+                    job_name = query_json['job_name']
                     username = query_json['username']
                     user_id = query_json['user_id']
                     output_fields = query_json['output']
@@ -556,11 +565,12 @@ def poll_queue():
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
                         # shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
-                        csv_path = user_query_result_dir + '/' + job_id + '.csv'
+                        file_name = get_file_name(job_id, job_name)
+                        csv_path = user_query_result_dir + '/' + file_name + '.csv'
                         logger.info(csv_path)
-                        csv_name = job_id + '.csv'
-                        node_path = job_id + '_nodes.csv'
-                        edge_path = job_id + '_edges.csv'
+                        csv_name = file_name + '.csv'
+                        node_path = file_name + '_nodes.csv'
+                        edge_path = file_name + '_edges.csv'
                         logger.info(node_path)
                         logger.info(edge_path)
                         file_insert_statement = "INSERT INTO query_result" \
