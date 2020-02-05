@@ -475,7 +475,8 @@ def generate_csv_fields_neo4j_wos(output_filters):
 
 
 def get_file_name(job_id, job_name):
-    if job_id is job_name:
+    logger.info(job_name)
+    if job_id == job_name or job_name == '':
         file_name = job_id
     else:
         file_name = job_name + '_' + job_id

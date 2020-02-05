@@ -107,6 +107,7 @@ def poll_queue():
                 install_commands = query_json['install_commands']
                 file_paths = query_json['file_paths']
                 entrypoint_script = query_json['entrypoint']
+                requirements_script = query_json['requirements_path']
                 environment = query_json['environment']
                 try:
                     if 'python' is environment:
@@ -125,7 +126,13 @@ def poll_queue():
                         copy_files.append(file_info)
                     entrypoint_script = [entrypoint_script]
                     entrypoint_relative_path = util.tool_util.get_relative_paths_tool_scripts(entrypoint_script, username)
+                    requirements_script = [requirements_script]
+                    requirements_relative_path = util.tool_util.get_relative_paths_tool_scripts(requirements_script,
+                                                                                              username)
                     install_commands_list = []
+                    if requirements_relative_path != '':
+                        requirements_command = 'pip install -r ' + requirements_relative_path
+                        install_commands_list.append({'name': requirements_command})
                     if len(install_commands) > 0:
                         if ',' in install_commands:
                             commands_list = install_commands.split(",")
