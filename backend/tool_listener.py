@@ -127,8 +127,9 @@ def poll_queue():
                     entrypoint_script = [entrypoint_script]
                     entrypoint_relative_path = util.tool_util.get_relative_paths_tool_scripts(entrypoint_script, username)
                     requirements_script = [requirements_script]
-                    requirements_relative_path = util.tool_util.get_relative_paths_tool_scripts(requirements_script,
+                    requirements_relative_path_list = util.tool_util.get_relative_paths_tool_scripts(requirements_script,
                                                                                               username)
+                    requirements_relative_path = requirements_relative_path_list[0]
                     install_commands_list = []
                     if requirements_relative_path != '':
                         requirements_command = 'pip install -r ' + requirements_relative_path
