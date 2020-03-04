@@ -21,7 +21,8 @@ conf = cadre + '/conf'
 sys.path.append(cadre)
 
 import util.config_reader
-from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver
+import util.tool_util
+from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver, wos_driver
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
 # logfile_path = cadre + "/cadre_job_listener.log"
@@ -49,15 +50,45 @@ sqs_client = boto3.client('sqs',
 
 queue_url = util.config_reader.get_job_queue_url()
 
-output_fileters_map = {
-    "author_sequence_number":"author_sequence_number::varchar",
-    "date":"date::varchar",
-    "paper_reference_count":"paper_reference_count::varchar",
-    "paper_citation_count":"paper_citation_count::varchar",
-    "paper_estimated_citation":"paper_estimated_citation::varchar"
+output_fileters_map_mag_graph = {
+    "author_sequence_number": "author_sequence_number::varchar",
+    "date": "date::varchar",
+    "paper_reference_count": "paper_reference_count::varchar",
+    "paper_citation_count": "paper_citation_count::varchar",
+    "paper_estimated_citation": "paper_estimated_citation::varchar"
 }
 
-degree_0_fields_map = {
+output_fileters_map_wos_graph = {
+    "year": "year::varchar",
+    "number": "number::varchar",
+    "issue": "issue::varchar",
+    "pages": "pages::varchar",
+    "authors_full_name": "authors_full_name::varchar",
+    "authors_id_orcid": "authors_id_orcid::varchar",
+    "authors_id_dais": "authors_id_dais::varchar",
+    "authors_id_research": "authors_id_research::varchar",
+    "authors_prefix": "authors_prefix::varchar",
+    "authors_first_name": "authors_first_name::varchar",
+    "authors_middle_name": "authors_middle_name::varchar",
+    "authors_last_name": "authors_last_name::varchar",
+    "authors_suffix": "authors_suffix::varchar",
+    "authors_initials": "authors_initials::varchar",
+    "authors_display_name": "authors_display_name::varchar",
+    "authors_wos_name": "authors_wos_name::varchar",
+    "authors_id_lang": "authors_id_lang::varchar",
+    "authors_email": "authors_email::varchar",
+    "reference": "reference::varchar",
+    "issn": "issn::varchar",
+    "doi": "doi::varchar",
+    "title": "title::varchar",
+    "journal_name": "journals_name::varchar",
+    "journal_abbrev": "journals_abbrev::varchar",
+    "journal_iso": "journals_iso::varchar",
+    "abstract_paragraph": "abstract_paragraphs::varchar",
+    "reference_count": "reference_count::varchar"
+}
+
+degree_0_fields_map_mag_graph = {
     "paper_id": "row.paper_id AS paper_id,",
     "author_id": "row.author_id AS author_id,",
     "author_sequence_number":"row.author_sequence_number AS author_sequence_number,",
@@ -90,6 +121,38 @@ degree_0_fields_map = {
 }
 
 
+degree_0_fields_map_wos_graph = {
+    "id": "row.id as wos_id,",
+    "year": "row.year as year,",
+    "number": "row.number as number,",
+    "issue": "row.issue as issue, ",
+    "pages": "row.pages as pages,",
+    "authors_full_name": "row.authors_full_name as authors_full_name,",
+    "authors_id_orcid": "row.authors_id_orcid as authors_id_orcid,",
+    "authors_id_dais": "row.authors_id_dais as authors_id_dais,",
+    "authors_id_research": "row.authors_id_research as authors_id_research,",
+    "authors_prefix": "row.authors_prefix as authors_prefix,",
+    "authors_first_name": "row.authors_first_name as authors_first_name,",
+    "authors_middle_name": "row.authors_middle_name as authors_middle_name,",
+    "authors_last_name": "row.authors_last_name as authors_last_name,",
+    "authors_suffix": "row.authors_suffix as authors_suffix,",
+    "authors_initials": "row.authors_initials as authors_initials,",
+    "authors_display_name": "row.authors_display_name as authors_display_name,",
+    "authors_wos_name": "row.authors_wos_name as authors_wos_name,",
+    "authors_id_lang": "row.authors_id_lang as authors_id_lang,",
+    "authors_email": "row.authors_email as authors_email,",
+    "reference": "row.reference as reference,",
+    "issn": "row.issn as issn,",
+    "doi": "row.doi as doi,",
+    "title": "row.title as title,",
+    "journal_name": "row.journals_name as journal_name,",
+    "journal_abbrev": "row.journals_abbrev as journal_abbrev,",
+    "journal_iso": "row.journals_iso as journal_iso,",
+    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph',",
+    "reference_count": "row.reference_count as reference_count',"
+}
+
+
 def generate_wos_query(output_filter_string, query_json, network_enabled):
     interface_query = 'SELECT ' + output_filter_string + ' FROM wos_core.interface_table WHERE '
     for item in query_json:
@@ -110,7 +173,7 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                         interface_query += ' year={} '.format(value) + operand
                         # years.append(value)
                         # year_operands.append(operand)
-            elif field == 'journals_name':
+            elif field == 'journal_name':
                 if value is not None:
                     value = value.strip()
                     value = value.replace(' ', '%')
@@ -118,7 +181,7 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     value = "'{}'".format(value)
                     if network_enabled:
                         value = value.replace("'", "\\'")
-                    logger.info("Journals Name: " + value)
+                    logger.info("Journal Name: " + value)
                     interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
                     # journals.append(value)
                     # journal_operands.append(operand)
@@ -163,7 +226,7 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
     #               "paper_publisher,issue,paper_abstract,paper_first_page,paper_last_page,paper_reference_count::varchar,"\
     #               "paper_citation_count::varchar,paper_estimated_citation::varchar,conference_display_name,journal_display_name,"\
     #               "journal_issn,journal_publisher"
-    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.final_mag_interface_table WHERE '
+    interface_query = 'SELECT ' + output_filter_string + ' FROM mag_core.interface_table WHERE '
     for item in query_json:
         if 'value' in item:
             value = item['value']
@@ -274,33 +337,33 @@ def degree_0_query(interface_query, csv_file_name, csv_field_names):
     return neo4j_query
 
 
-def get_edge_list_degree_1(csv_file_name, edge_file_name):
+def get_edge_list_degree_1_mag(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
     logger.info(csv_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
                   " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
-                  "RETURN n.paper_id AS From , m.paper_id AS To','" + edge_file_name + "', {})"
+                  "RETURN n.paper_id AS Citing , m.paper_id AS Cited','" + edge_file_name + "', {})"
     logger.info(neo4j_query)
     return neo4j_query
 
 
-def get_edge_list_degree_2(csv_file_name, edge_file_name):
+def get_edge_list_degree_2_mag(csv_file_name, edge_file_name):
     csv_file_name = "file:///" + csv_file_name
 
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
                   " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`paper_id`}) <- [:REFERENCES]-(m:paper) " \
                   "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
                   " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
-                  "  UNWIND (data1 + data2) AS data RETURN data.from AS From, data.to AS To','" + edge_file_name + "',{})"
+                  "  UNWIND (data1 + data2) AS data RETURN data.from AS Citing, data.to AS Cited','" + edge_file_name + "',{})"
     logger.info(neo4j_query)
     return neo4j_query
 
 
-def get_node_list(edge_file_name, node_file_name):
+def get_node_list_mag(edge_file_name, node_file_name):
     edge_file_name = "file:///" + edge_file_name
     logger.info(edge_file_name)
     neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
-                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`From`, edge.`To`] " \
+                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`Citing`, edge.`Cited`] " \
                   "RETURN DISTINCT(n.paper_id) AS paper_id," \
                   "n.date AS date,"\
                   "n.journal_id AS journal_id,"\
@@ -327,47 +390,97 @@ def get_node_list(edge_file_name, node_file_name):
     return neo4j_query
 
 
-def degree_1_query(interface_query, node_file_name, edge_file_name):
-    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
-                  " '" + interface_query + \
-                  "') YIELD row MATCH (n:paper)<-[r:REFERENCES]-(m:paper)" \
-                  " WHERE n.paper_id = row.paper_id WITH collect(distinct m) + n as nodes, " \
-                  "collect(distinct r) as relationships CALL apoc.export.csv.data([], relationships, '" + edge_file_name + "', {}) " \
-                  "YIELD file as edgefile CALL apoc.export.csv.data(nodes, [], '" + node_file_name + "', {}) " \
-                  "YIELD file as nodefile RETURN nodes, relationships"
+def get_edge_list_degree_1_wos(csv_file_name, edge_file_name):
+    csv_file_name = "file:///" + csv_file_name
+    logger.info(csv_file_name)
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " AS pg_pap MATCH(n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
+                  "RETURN n.paper_id AS Citing , m.paper_id AS Cited','" + edge_file_name + "', {})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
-def degree_2_query(interface_query, node_file_name, edge_file_name):
-    neo4j_query = "CALL apoc.load.jdbc('postgresql_url'," \
-                  " '" + interface_query + \
-                  "') YIELD row MATCH (n:paper)<-[r:REFERENCES]-(m:paper)<-[s:REFERENCES]-(o:paper)" \
-                  " WHERE n.paper_id = row.paper_id WITH collect(distinct m)  + collect(distinct o) + n as nodes, " \
-                  "collect(distinct r) + collect(distinct s) as relationships CALL apoc.export.csv.data(nodes, [],  '" + node_file_name + "', {}) " \
-                  "YIELD file as nodefile CALL apoc.export.csv.data([], relationships, '" + edge_file_name + "', {}) " \
-                  "YIELD file as edgefile RETURN nodes, relationships"
+def get_edge_list_degree_2_wos(csv_file_name, edge_file_name):
+    csv_file_name = "file:///" + csv_file_name
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + csv_file_name + "\\'" \
+                  " AS pg_pap MATCH (n:paper{paper_id:pg_pap.`wos_id`}) <- [:REFERENCES]-(m:paper) " \
+                  "WITH COLLECT ({from:n.paper_id, to: m.paper_id}) AS data1" + "," \
+                  " [(m)<-[:REFERENCES]-(o:paper) | {from: m.paper_id, to: o.paper_id}] AS data2" +  \
+                  "  UNWIND (data1 + data2) AS data RETURN data.from AS Citing, data.to AS Cited','" + edge_file_name + "',{})"
+    logger.info(neo4j_query)
     return neo4j_query
 
 
-def generate_output_string_neo4j(output_filters):
+def get_node_list_wos(edge_file_name, node_file_name):
+    edge_file_name = "file:///" + edge_file_name
+    logger.info(edge_file_name)
+    neo4j_query = "CALL apoc.export.csv.query('LOAD CSV WITH HEADERS FROM \\'" + edge_file_name + "\\' " \
+                  "as edge MATCH(n:paper) WHERE n.paper_id IN [edge.`Citing`, edge.`Cited`] " \
+                  "RETURN DISTINCT(n.paper_id) AS paper_id," \
+                  "n.pubyear AS pubyear,"\
+                  "n.issue AS issue,"\
+                  "n.issn AS issn,"\
+                  "n.has_abstract AS has_abstract,"\
+                  "n.authors_full_name AS authors_full_name,"\
+                  "n.journal_name AS journal_name,"\
+                  "n.pubtype AS pubtype,"\
+                  "n.title AS title,"\
+                  "n.vol AS vol','" + node_file_name + "', {})"
+    logger.info(neo4j_query)
+    return neo4j_query
+
+
+def generate_output_string_neo4j_mag(output_filters):
     logger.info(output_filters)
     for output in output_filters:
         logger.info(output)
-        if output in output_fileters_map:
+        if output in output_fileters_map_mag_graph:
             output_filters.remove(output)
-            output_filters.append(output_fileters_map[output])
+            output_filters.append(output_fileters_map_mag_graph[output])
     output_string = ",".join(output_filters)
     logger.info(output_string)
     return output_string
 
 
-def generate_csv_fields_neo4j(output_filters):
+def generate_csv_fields_neo4j_mag(output_filters):
     output_string = ''
     for output in output_filters:
-        output_string += degree_0_fields_map[output]
+        output_string += degree_0_fields_map_mag_graph[output]
     output_string = output_string[:-1]
     logger.info(output_string)
     return output_string
+
+
+def generate_output_string_neo4j_wos(output_filters):
+    logger.info(output_filters)
+    graph_output_fields = []
+    for output in output_filters:
+        logger.info(output)
+        if output in output_fileters_map_wos_graph:
+            graph_output_fields.append(output_fileters_map_wos_graph[output])
+        else:
+            graph_output_fields.append(output)
+    output_string = ",".join(graph_output_fields)
+    logger.info(output_string)
+    return output_string
+
+
+def generate_csv_fields_neo4j_wos(output_filters):
+    output_string = ''
+    for output in output_filters:
+        output_string += degree_0_fields_map_wos_graph[output]
+    output_string = output_string[:-1]
+    logger.info(output_string)
+    return output_string
+
+
+def get_file_name(job_id, job_name):
+    logger.info(job_name)
+    if job_id == job_name or job_name == '':
+        file_name = job_id
+    else:
+        file_name = job_name + '_' + job_id
+    return file_name
 
 
 def poll_queue():
@@ -393,7 +506,8 @@ def poll_queue():
             mag_cursor = mag_connection.cursor()
             meta_connection = cadre_meta_connection_pool.getconn()
             meta_db_cursor = meta_connection.cursor()
-            driver_session = mag_driver.session()
+            mag_driver_session = mag_driver.session()
+            wos_driver_session = wos_driver.session()
             output_filters_single = []
 
             for message in response['Messages']:
@@ -410,7 +524,9 @@ def poll_queue():
                     dataset = query_json['dataset']
                     filters = query_json['filters']
                     job_id = query_json['job_id']
+                    job_name = query_json['job_name']
                     username = query_json['username']
+                    user_id = query_json['user_id']
                     output_fields = query_json['output']
 
                     # Delete received message from queue
@@ -423,51 +539,146 @@ def poll_queue():
                         type = output_filed['type']
                         if type == 'single':
                             field = output_filed['field']
-                            output_filters_single.append(field)
+                            if field == 'wos_id':
+                                output_filters_single.append('id')
+                            elif field == 'references':
+                                output_filters_single.append("\\'references\\'")
+                            else:
+                                output_filters_single.append(field)
                         else:
                             network_query_type = output_filed['field']
                             degree = int(output_filed['degree'])
-                            if 'paper_id' not in output_filters_single:
-                                output_filters_single.append('paper_id')
                     output_filter_string = ",".join(output_filters_single)
+                    logger.info(output_filter_string)
                     # Updating the job status in the job database as running
                     logger.info(network_query_type)
-                    updateStatement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    job_update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
-                    meta_db_cursor.execute(updateStatement, (job_id,))
+                    meta_db_cursor.execute(job_update_statement, (job_id,))
                     meta_connection.commit()
-                    s3_client = boto3.resource('s3',
-                                               aws_access_key_id=util.config_reader.get_aws_access_key(),
-                                               aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
-                                               region_name=util.config_reader.get_aws_region())
-                    root_bucket_name = 'cadre-query-result'
-                    bucket_location = username + '/query-results/'
-
-
-
-                    # Generating the Query that needs to run on the RDS
                     try:
                         efs_root = util.config_reader.get_cadre_efs_root_query_results_listener()
-                        neo4j_import_datasets = util.config_reader.get_mag_graph_db_import_dir()
-                        neo4j_import_listener = util.config_reader.get_cadre_efs_root_neo4j_output_listener()
-                        user_query_result_dir = efs_root + '/' + username + '/query-results'
+                        efs_subpath = util.config_reader.get_cadre_efs_subpath_query_results_listener()
+                        efs_path = efs_root + efs_subpath
+                        neo4j_mag_import_efs_dir = util.config_reader.get_cadre_efs_root_neo4j_mag_output_listener()
+                        neo4j_wos_import_efs_dir = util.config_reader.get_cadre_efs_root_neo4j_wos_output_listener()
+                        user_query_result_dir = efs_path + '/' + username + '/query-results'
                         if not os.path.exists(user_query_result_dir):
                             os.makedirs(user_query_result_dir)
                         # shutil.chown(user_query_result_dir, user='ubuntu', group='ubuntu')
-                        csv_path = user_query_result_dir + '/' + job_id + '.csv'
+                        file_name = get_file_name(job_id, job_name)
+                        csv_path = user_query_result_dir + '/' + file_name + '.csv'
                         logger.info(csv_path)
-                        csv_name = job_id + '.csv'
-                        node_path = job_id + '_nodes.csv'
-                        edge_path = job_id + '_edges.csv'
+                        csv_name = file_name + '.csv'
+                        node_path = file_name + '_nodes.csv'
+                        edge_path = file_name + '_edges.csv'
                         logger.info(node_path)
                         logger.info(edge_path)
+                        file_insert_statement = "INSERT INTO query_result" \
+                                                "(job_id,efs_path, file_checksum, data_type, authenticity, created_by, created_on) " \
+                                                "VALUES(%s,%s,%s,%s,%s,%s,current_timestamp )"
                         if dataset == 'wos':
                             logger.info('User selects WOS dataset !!!')
-                            if network_query_type == 'citations':
-                                # output_filters_single.append('paper_reference_id')
-                                # output_filter_string = ",".join(output_filters_single)
-                                # interface_query = generate_wos_query(output_filter_string, filters)
-                                logger.info("Not yet supported...")
+                            if network_query_type == 'references':
+                                logger.info(network_query_type)
+                                network_enabled = True
+                                if 'id' not in output_filters_single:
+                                    output_filters_single.append('id')
+                                # generate output filter string for neo4j
+                                output_filter_string = generate_output_string_neo4j_wos(output_filters_single)
+                                logger.info(output_filter_string)
+                                interface_query = generate_wos_query(output_filter_string, filters, network_enabled)
+                                logger.info(interface_query)
+                                degree_0_field_names = generate_csv_fields_neo4j_wos(output_filters_single)
+                                if degree == 1:
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    edge_query = get_edge_list_degree_1_wos(csv_name, edge_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
+                                    degree_0_results = wos_driver_session.run(degree_0_q)
+                                    edge_result = wos_driver_session.run(edge_query)
+                                    node_result = wos_driver_session.run(node_query)
+                                    entire_result_degree_0 = []  # Will contain all the items
+                                    edge_result_degree_1 = []  # Will contain all the items
+                                    node_result_degree_1 = []  # Will contain all the items
+                                    for record in degree_0_results:
+                                        entire_result_degree_0.append(record)
+                                    for record in edge_result:
+                                        edge_result_degree_1.append(record)
+                                    for record in node_result:
+                                        node_result_degree_1.append(record)
+                                elif degree == 2:
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    logger.info(degree_0_q)
+                                    edge_query = get_edge_list_degree_2_wos(csv_name, edge_path)
+                                    logger.info(edge_query)
+                                    node_query = get_node_list_wos(edge_path, node_path)
+                                    logger.info(node_query)
+                                    degree_0_results = wos_driver_session.run(degree_0_q)
+                                    edge_result = wos_driver_session.run(edge_query)
+                                    node_result = wos_driver_session.run(node_query)
+                                    entire_result_degree_0 = []  # Will contain all the items
+                                    edge_result_degree_1 = []  # Will contain all the items
+                                    node_result_degree_1 = []  # Will contain all the items
+                                    for record in degree_0_results:
+                                        entire_result_degree_0.append(record)
+                                    for record in edge_result:
+                                        edge_result_degree_1.append(record)
+                                    for record in node_result:
+                                        node_result_degree_1.append(record)
+                                else:
+                                    logger.info(
+                                        "Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    edge_query = get_edge_list_degree_2_wos(csv_name, edge_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
+                                    degree_0_results = wos_driver_session.run(degree_0_q)
+                                    edge_result = wos_driver_session.run(edge_query)
+                                    node_result = wos_driver_session.run(node_query)
+
+                                    entire_result_degree_0 = []  # Will contain all the items
+                                    edge_result_degree_1 = []  # Will contain all the items
+                                    node_result_degree_1 = []  # Will contain all the items
+
+                                    for record in degree_0_results:
+                                        entire_result_degree_0.append(record)
+                                    for record in edge_result:
+                                        edge_result_degree_1.append(record)
+                                    for record in node_result:
+                                        node_result_degree_1.append(record)
+                                # copy files to correct EFS location
+                                source_csv_path = neo4j_wos_import_efs_dir + '/' + csv_name
+                                target_csv_path = user_query_result_dir + '/' + csv_name
+                                logger.info(source_csv_path)
+                                logger.info(target_csv_path)
+                                copyfile(source_csv_path, target_csv_path)
+
+                                source_node_path = neo4j_wos_import_efs_dir + '/' + node_path
+                                target_node_path = user_query_result_dir + '/' + node_path
+                                logger.info(source_node_path)
+                                logger.info(target_node_path)
+                                copyfile(source_node_path, target_node_path)
+
+                                source_edge_path = neo4j_wos_import_efs_dir + '/' + edge_path
+                                target_edge_path = user_query_result_dir + '/' + edge_path
+                                logger.info(source_edge_path)
+                                logger.info(target_edge_path)
+                                copyfile(source_edge_path, target_edge_path)
+
+                                # get checksums and update the db
+                                target_csv_checksum = util.tool_util.get_file_checksum(target_csv_path)
+                                target_edge_file_checksum = util.tool_util.get_file_checksum(target_edge_path)
+                                target_node_file_checksum = util.tool_util.get_file_checksum(target_node_path)
+
+                                csv_file_insert_data = (job_id, target_csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
+                                edge_file_insert_data = (job_id, target_edge_path, target_edge_file_checksum, 'WOS', 'TRUE', user_id)
+                                node_file_insert_data = (job_id, target_node_path, target_node_file_checksum, 'WOS', 'TRUE', user_id)
+                                # Execute the SQL Query
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, edge_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, node_file_insert_data)
+                                meta_connection.commit()
                             else:
                                 network_enabled = False
                                 interface_query = generate_wos_query(output_filter_string, filters, network_enabled)
@@ -475,8 +686,12 @@ def poll_queue():
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     wos_cursor.copy_expert(output_query, f)
-                                s3_client.meta.client.upload_file(csv_path, root_bucket_name,
-                                                                  bucket_location + job_id + '.csv')
+                                target_csv_checksum = util.tool_util.get_file_checksum(csv_path)
+
+                                csv_file_insert_data = (job_id, csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+
                         else:
                             logger.info('User selects MAG dataset !!!')
                             if network_query_type == 'citations':
@@ -485,85 +700,108 @@ def poll_queue():
                                 if 'paper_id' not in output_filters_single:
                                     output_filters_single.append('paper_id')
                                 # generate output filter string for neo4j
-                                output_filter_string = generate_output_string_neo4j(output_filters_single)
+                                logger.info(output_filters_single)
+                                output_filter_string = generate_output_string_neo4j_mag(output_filters_single)
                                 logger.info(output_filter_string)
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
-                                degree_0_field_names = generate_csv_fields_neo4j(output_filters_single)
+                                degree_0_field_names = generate_csv_fields_neo4j_mag(output_filters_single)
                                 if degree == 1:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
-                                    edge_query = get_edge_list_degree_1(csv_name, edge_path)
-                                    node_query = get_node_list(edge_path, node_path)
-                                    degree_0_results = driver_session.run(degree_0_q)
-                                    edge_result = driver_session.run(edge_query)
-                                    node_result = driver_session.run(node_query)
+                                    edge_query = get_edge_list_degree_1_mag(csv_name, edge_path)
+                                    node_query = get_node_list_mag(edge_path, node_path)
+                                    degree_0_results = mag_driver_session.run(degree_0_q)
+                                    logger.info('Degree 0 query executed...')
+                                    edge_result = mag_driver_session.run(edge_query)
+                                    logger.info('Edge query executed...')
+                                    node_result = mag_driver_session.run(node_query)
+                                    logger.info('Node query executed...')
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
 
-                                    for record in entire_result_degree_0:
+                                    for record in degree_0_results:
                                         entire_result_degree_0.append(record)
-                                    for record in edge_result_degree_1:
+                                    for record in edge_result:
                                         edge_result_degree_1.append(record)
-                                    for record in node_result_degree_1:
+                                    for record in node_result:
                                         node_result_degree_1.append(record)
                                 elif degree == 2:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
                                     logger.info(degree_0_q)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
+                                    edge_query = get_edge_list_degree_2_mag(csv_name, edge_path)
                                     logger.info(edge_query)
-                                    node_query = get_node_list(edge_path, node_path)
+                                    node_query = get_node_list_mag(edge_path, node_path)
                                     logger.info(node_query)
-                                    degree_0_results = driver_session.run(degree_0_q)
-                                    edge_result = driver_session.run(edge_query)
-                                    node_result = driver_session.run(node_query)
+                                    degree_0_results = mag_driver_session.run(degree_0_q)
+                                    edge_result = mag_driver_session.run(edge_query)
+                                    node_result = mag_driver_session.run(node_query)
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
-                                    for record in entire_result_degree_0:
+                                    for record in degree_0_results:
                                         entire_result_degree_0.append(record)
-                                    for record in edge_result_degree_1:
+                                    for record in edge_result:
                                         edge_result_degree_1.append(record)
-                                    for record in node_result_degree_1:
+                                    for record in node_result:
                                         node_result_degree_1.append(record)
                                 else:
                                     logger.info("Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
-                                    edge_query = get_edge_list_degree_2(csv_name, edge_path)
-                                    node_query = get_node_list(edge_path, node_path)
-                                    degree_0_results = driver_session.run(degree_0_q)
-                                    edge_result = driver_session.run(edge_query)
-                                    node_result = driver_session.run(node_query)
+                                    edge_query = get_edge_list_degree_2_mag(csv_name, edge_path)
+                                    node_query = get_node_list_mag(edge_path, node_path)
+                                    degree_0_results = mag_driver_session.run(degree_0_q)
+                                    edge_result = mag_driver_session.run(edge_query)
+                                    node_result = mag_driver_session.run(node_query)
 
                                     entire_result_degree_0 = []  # Will contain all the items
                                     edge_result_degree_1 = []  # Will contain all the items
                                     node_result_degree_1 = []  # Will contain all the items
 
-                                    for record in entire_result_degree_0:
+                                    for record in degree_0_results:
                                         entire_result_degree_0.append(record)
-                                    for record in edge_result_degree_1:
+                                    for record in edge_result:
                                         edge_result_degree_1.append(record)
-                                    for record in node_result_degree_1:
+                                    for record in node_result:
                                         node_result_degree_1.append(record)
-                                # copy files to correct EFS location and s3 locations
-                                source_csv_path = neo4j_import_listener + '/' + csv_name
+
+                                # copy files to correct EFS location
+                                source_csv_path = neo4j_mag_import_efs_dir + '/' + csv_name
                                 target_csv_path = user_query_result_dir + '/' + csv_name
                                 logger.info(source_csv_path)
                                 logger.info(target_csv_path)
                                 copyfile(source_csv_path, target_csv_path)
 
-                                source_node_path = neo4j_import_listener + '/' + node_path
+                                source_node_path = neo4j_mag_import_efs_dir + '/' + node_path
                                 target_node_path = user_query_result_dir + '/' + node_path
                                 logger.info(source_node_path)
                                 logger.info(target_node_path)
                                 copyfile(source_node_path, target_node_path)
 
-                                source_edge_path = neo4j_import_listener + '/' + edge_path
+                                source_edge_path = neo4j_mag_import_efs_dir + '/' + edge_path
                                 target_edge_path = user_query_result_dir + '/' + edge_path
                                 logger.info(source_edge_path)
                                 logger.info(target_edge_path)
                                 copyfile(source_edge_path, target_edge_path)
-                                # driver_session.commit()
+
+                                # get checksums and update the db
+                                target_csv_checksum = util.tool_util.get_file_checksum(target_csv_path)
+                                target_edge_file_checksum = util.tool_util.get_file_checksum(target_edge_path)
+                                target_node_file_checksum = util.tool_util.get_file_checksum(target_node_path)
+
+                                csv_file_insert_data = (
+                                job_id, target_csv_path, target_csv_checksum, 'MAG', 'TRUE', user_id)
+                                edge_file_insert_data = (
+                                job_id, target_edge_path, target_edge_file_checksum, 'MAG', 'TRUE', user_id)
+                                node_file_insert_data = (
+                                job_id, target_node_path, target_node_file_checksum, 'MAG', 'TRUE', user_id)
+                                # Execute the SQL Query
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, edge_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, node_file_insert_data)
+                                meta_connection.commit()
                             else:
                                 network_enabled = False
                                 interface_query = generate_mag_query(output_filter_string, filters, network_enabled)
@@ -571,29 +809,39 @@ def poll_queue():
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
                                     mag_cursor.copy_expert(output_query, f)
-                                s3_client.meta.client.upload_file(csv_path, root_bucket_name,
-                                                                  bucket_location + job_id + '.csv')
-                    except:
-                        print("Job ID: " + job_id)
-                        updateStatement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                                target_csv_checksum = util.tool_util.get_file_checksum(csv_path)
+
+                                csv_file_insert_data = (job_id, csv_path, target_csv_checksum, 'MAG', 'TRUE', user_id)
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+                    except (Exception) as error:
+                        logger.error(error)
+                        logger.error("Error while executing graph query. Error is " + str(error))
+                        logger.info("Job ID: " + job_id)
+                        job_update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                         # Execute the SQL Query
-                        meta_db_cursor.execute(updateStatement, (job_id,))
+                        meta_db_cursor.execute(job_update_statement, (job_id,))
                         meta_connection.commit()
 
                     print("Job ID: " + job_id)
-                    updateStatement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    job_update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
-                    meta_db_cursor.execute(updateStatement, (job_id,))
+                    meta_db_cursor.execute(job_update_statement, (job_id,))
                     meta_connection.commit()
                 except (Exception, psycopg2.Error) as error:
                     traceback.print_tb(error.__traceback__)
                     logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
+                    job_update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    # Execute the SQL Query
+                    meta_db_cursor.execute(job_update_statement, (job_id,))
+                    meta_connection.commit()
                 finally:
                     # Closing database connection.
                     wos_cursor.close()
                     mag_cursor.close()
                     meta_db_cursor.close()
-                    driver_session.close()
+                    mag_driver_session.close()
+                    wos_driver_session.close()
                     # Use this method to release the connection object and send back ti connection pool
                     wos_connection_pool.putconn(wos_connection)
                     mag_connection_pool.putconn(mag_connection)

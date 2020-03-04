@@ -2,3 +2,5 @@ boto3==1.9.105
 psycopg2-binary==2.7.4
 neo4j-driver==1.7.4
 docker==4.0.2
+kubernetes==10.0.1
+Jinja2==2.10.1
