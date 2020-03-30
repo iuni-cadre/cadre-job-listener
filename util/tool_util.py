@@ -16,24 +16,36 @@ util = cadre + '/util'
 conf = cadre + '/conf'
 sys.path.append(cadre)
 
-log_conf = conf + '/logging-tool-conf.json'
-with open(log_conf, 'r') as logging_configuration_file:
-    config_dict = json.load(logging_configuration_file)
+logger = None
+s3_file_archive = None
+s3_tool_location = None
+aws_access_key_id = None
+aws_secret = None
+aws_region = None
+efs_path = None
 
-logging.config.dictConfig(config_dict)
+def initialize():
+    global logger, s3_file_archive, s3_tool_location, aws_access_key_id
+    global aws_secret, aws_region, efs_path
 
-# Log that the logger was configured
-logger = logging.getLogger(__name__)
-logger.info('Completed configuring logger()!')
+    log_conf = conf + '/logging-tool-conf.json'
+    with open(log_conf, 'r') as logging_configuration_file:
+        config_dict = json.load(logging_configuration_file)
 
-import util.config_reader
+    logging.config.dictConfig(config_dict)
 
-s3_file_archive = util.config_reader.get_archive_s3_root()
-s3_tool_location = util.config_reader.get_tools_s3_root()
-aws_access_key_id = util.config_reader.get_aws_access_key()
-aws_secret = util.config_reader.get_aws_access_key_secret()
-aws_region = util.config_reader.get_aws_region()
-efs_path = util.config_reader.get_cadre_efs_root_query_results_listener() + util.config_reader.get_cadre_efs_subpath_query_results_listener()
+    # Log that the logger was configured
+    logger = logging.getLogger(__name__)
+    logger.info('Completed configuring logger()!')
+
+    import util.config_reader
+
+    s3_file_archive = util.config_reader.get_archive_s3_root()
+    s3_tool_location = util.config_reader.get_tools_s3_root()
+    aws_access_key_id = util.config_reader.get_aws_access_key()
+    aws_secret = util.config_reader.get_aws_access_key_secret()
+    aws_region = util.config_reader.get_aws_region()
+    efs_path = util.config_reader.get_cadre_efs_root_query_results_listener() + util.config_reader.get_cadre_efs_subpath_query_results_listener()
 
 
 def create_python_dockerfile_and_upload_s3(tool_id, docker_template_json):
