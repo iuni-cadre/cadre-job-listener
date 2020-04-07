@@ -146,8 +146,8 @@ degree_0_fields_map_wos_graph = {
     "journal_name": "row.journals_name as journal_name,",
     "journal_abbrev": "row.journals_abbrev as journal_abbrev,",
     "journal_iso": "row.journals_iso as journal_iso,",
-    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph',",
-    "reference_count": "row.reference_count AS reference_count',"
+    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph,",
+    "reference_count": "row.reference_count AS reference_count,"
 }
 
 
