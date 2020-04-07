@@ -84,8 +84,7 @@ output_fileters_map_wos_graph = {
     "journal_name": "journals_name::varchar",
     "journal_abbrev": "journals_abbrev::varchar",
     "journal_iso": "journals_iso::varchar",
-    "abstract_paragraph": "abstract_paragraphs::varchar",
-    "reference_count": "reference_count::varchar"
+    "abstract_paragraph": "abstract_paragraphs::varchar"
 }
 
 degree_0_fields_map_mag_graph = {
@@ -111,7 +110,7 @@ degree_0_fields_map_mag_graph = {
     "paper_abstract": "row.paper_abstract AS paper_abstract,",
     "paper_first_page": "row.paper_first_page AS paper_first_page,",
     "paper_last_page": "row.paper_last_page AS paper_last_page,",
-    "paper_reference_count::varchar": "row.paper_reference AS paper_reference,",
+    "paper_reference_count::varchar": "row.paper_reference_count AS paper_reference,",
     "paper_citation_count::varchar": "row.paper_citation_count AS paper_citation_count,",
     "paper_estimated_citation::varchar": "row.paper_estimated_citation AS paper_estimated_citation,",
     "conference_display_name": "row.conference_display_name AS conference_display_name,",
@@ -147,7 +146,8 @@ degree_0_fields_map_wos_graph = {
     "journal_name": "row.journals_name as journal_name,",
     "journal_abbrev": "row.journals_abbrev as journal_abbrev,",
     "journal_iso": "row.journals_iso as journal_iso,",
-    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph',"
+    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph',",
+    "reference_count": "row.reference_count AS reference_count',"
 }
 
 
