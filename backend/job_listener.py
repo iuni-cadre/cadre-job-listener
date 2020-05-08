@@ -60,14 +60,13 @@ output_fileters_map_wos_graph = {
     "journal_name": "journals_name::varchar",
     "journal_abbrev": "journals_abbrev::varchar",
     "journal_iso": "journals_iso::varchar",
-    "abstract_paragraph": "abstract_paragraphs::varchar",
-    "reference_count": "reference_count::varchar"
+    "abstract_paragraph": "abstract_paragraphs::varchar"
 }
 
 degree_0_fields_map_mag_graph = {
     "paper_id": "row.paper_id AS paper_id,",
     "author_id": "row.author_id AS author_id,",
-    "author_sequence_number":"row.author_sequence_number AS author_sequence_number,",
+    "author_sequence_number::varchar":"row.author_sequence_number AS author_sequence_number,",
     "authors_display_name":"row.authors_display_name AS authors_display_name,",
     "authors_last_known_affiliation_id":"row.authors_last_known_affiliation_id AS authors_last_known_affiliation_id,",
     "journal_id": "row.journal AS journal_id,",
@@ -81,21 +80,20 @@ degree_0_fields_map_mag_graph = {
     "original_title": "row.original_title AS original_title,",
     "book_title": "row.book_title AS book_title,",
     "year": "row.year AS year,",
-    "date": "row.date AS date,",
+    "date::varchar": "row.date AS date,",
     "paper_publisher": "row.paper_publisher AS paper_publisher,",
     "issue": "row.issue AS issue,",
     "paper_abstract": "row.paper_abstract AS paper_abstract,",
     "paper_first_page": "row.paper_first_page AS paper_first_page,",
     "paper_last_page": "row.paper_last_page AS paper_last_page,",
-    "paper_reference_count": "row.paper_reference_count AS paper_reference_count,",
-    "paper_citation_count": "row.paper_citation_count AS paper_citation_count,",
-    "paper_estimated_citation": "row.paper_estimated_citation AS paper_estimated_citation,",
+    "paper_reference_count::varchar": "row.paper_reference_count AS paper_reference,",
+    "paper_citation_count::varchar": "row.paper_citation_count AS paper_citation_count,",
+    "paper_estimated_citation::varchar": "row.paper_estimated_citation AS paper_estimated_citation,",
     "conference_display_name": "row.conference_display_name AS conference_display_name,",
     "journal_display_name": "row.journal_display_name AS journal_display_name,",
     "journal_issn": "row.journal_issn AS journal_issn,",
     "journal_publisher": "row.journal_publisher AS journal_publisher,",
 }
-
 
 degree_0_fields_map_wos_graph = {
     "id": "row.id as wos_id,",
@@ -124,8 +122,8 @@ degree_0_fields_map_wos_graph = {
     "journal_name": "row.journals_name as journal_name,",
     "journal_abbrev": "row.journals_abbrev as journal_abbrev,",
     "journal_iso": "row.journals_iso as journal_iso,",
-    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph',",
-    "reference_count": "row.reference_count as reference_count',"
+    "abstract_paragraph": "row.abstract_paragraphs as abstract_paragraph,",
+    "reference_count": "row.reference_count AS reference_count,"
 }
 
 
@@ -185,9 +183,9 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
                     # authors.append(value)
 
     if network_enabled:
-        interface_query = interface_query + 'LIMIT' + ' ' + '1000'
+        interface_query = interface_query + 'LIMIT' + ' ' + '100000'
     else:
-        interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+        interface_query = interface_query + 'LIMIT' + ' ' + '100000'
     print("Query: " + interface_query)
     return interface_query
 
@@ -286,9 +284,9 @@ def generate_mag_query(output_filter_string, query_json, network_enabled):
                     interface_query += ' paper_abstract_tsv @@ to_tsquery ({}) '.format(value) + operand
 
     if network_enabled:
-        interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+        interface_query = interface_query + 'LIMIT' + ' ' + '100000'
     else:
-        interface_query = interface_query + 'LIMIT' + ' ' + '10000'
+        interface_query = interface_query + 'LIMIT' + ' ' + '100000'
     logger.info("Query: " + interface_query)
     return interface_query
 
@@ -444,7 +442,8 @@ def generate_output_string_neo4j_wos(output_filters):
 def generate_csv_fields_neo4j_wos(output_filters):
     output_string = ''
     for output in output_filters:
-        output_string += degree_0_fields_map_wos_graph[output]
+        if output in degree_0_fields_map_wos_graph.keys():
+            output_string += degree_0_fields_map_wos_graph[output]
     output_string = output_string[:-1]
     logger.info(output_string)
     return output_string
@@ -708,6 +707,7 @@ def poll_queue():
                                 degree_0_field_names = generate_csv_fields_neo4j_mag(output_filters_single)
                                 if degree == 1:
                                     degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    logger.info(degree_0_q)
                                     edge_query = get_edge_list_degree_1_mag(csv_name, edge_path)
                                     node_query = get_node_list_mag(edge_path, node_path)
                                     degree_0_results = mag_driver_session.run(degree_0_q)
@@ -815,7 +815,7 @@ def poll_queue():
                                 meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
                                 meta_connection.commit()
                     except (Exception) as error:
-                        logger.error(error)
+                        logger.exception(error)
                         logger.error("Error while executing graph query. Error is " + str(error))
                         logger.info("Job ID: " + job_id)
                         job_update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
