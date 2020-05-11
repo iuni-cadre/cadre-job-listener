@@ -324,24 +324,25 @@ def poll_queue():
                             api_response = api_instance.create_namespaced_pod(jhub_namespace, body, pretty=True)
                             logger.info(api_response)
                         except ApiException as e:
+                            logger.exception(e)
                             logger.error("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
                             update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                             # Execute the SQL Query
                             meta_db_cursor.execute(update_statement, (job_id,))
                             meta_connection.commit()
-                    try:
-                        for output_file in output_file_names:
-                            output_file = output_file.replace(" ", "")
-                            output_path = output_dir + output_file
-                            # convert_csv_to_json(output_dir, json_path, output_filter_string)
-                            s3_client.meta.client.upload_file(output_path, root_bucket_name,
-                                                              bucket_location + output_file)
-                    except:
-                        logger.info("Job ID: " + job_id)
-                        update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
-                        # Execute the SQL Query
-                        meta_db_cursor.execute(update_statement, (job_id,))
-                        meta_connection.commit()
+                    # try:
+                    #     for output_file in output_file_names:
+                    #         output_file = output_file.replace(" ", "")
+                    #         output_path = output_dir + output_file
+                    #         # convert_csv_to_json(output_dir, json_path, output_filter_string)
+                    #         s3_client.meta.client.upload_file(output_path, root_bucket_name,
+                    #                                           bucket_location + output_file)
+                    # except:
+                    #     logger.info("Job ID: " + job_id)
+                    #     update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    #     # Execute the SQL Query
+                    #     meta_db_cursor.execute(update_statement, (job_id,))
+                    #     meta_connection.commit()
 
                     print("Job ID: " + job_id)
                     update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
@@ -355,7 +356,7 @@ def poll_queue():
                     #                                                       body=body)
                     #     logger.info(api_response)
                 except (Exception, psycopg2.Error) as error:
-                    traceback.print_tb(error.__traceback__)
+                    logger.exception(e)
                     logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
                 finally:
                     # Closing database connection.

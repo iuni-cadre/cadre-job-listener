@@ -16,36 +16,24 @@ util = cadre + '/util'
 conf = cadre + '/conf'
 sys.path.append(cadre)
 
-logger = None
-s3_file_archive = None
-s3_tool_location = None
-aws_access_key_id = None
-aws_secret = None
-aws_region = None
-efs_path = None
+log_conf = conf + '/logging-tool-conf.json'
+with open(log_conf, 'r') as logging_configuration_file:
+    config_dict = json.load(logging_configuration_file)
 
-def initialize():
-    global logger, s3_file_archive, s3_tool_location, aws_access_key_id
-    global aws_secret, aws_region, efs_path
+logging.config.dictConfig(config_dict)
 
-    log_conf = conf + '/logging-tool-conf.json'
-    with open(log_conf, 'r') as logging_configuration_file:
-        config_dict = json.load(logging_configuration_file)
+# Log that the logger was configured
+logger = logging.getLogger(__name__)
+logger.info('Completed configuring logger()!')
 
-    logging.config.dictConfig(config_dict)
+import util.config_reader
 
-    # Log that the logger was configured
-    logger = logging.getLogger(__name__)
-    logger.info('Completed configuring logger()!')
-
-    import util.config_reader
-
-    s3_file_archive = util.config_reader.get_archive_s3_root()
-    s3_tool_location = util.config_reader.get_tools_s3_root()
-    aws_access_key_id = util.config_reader.get_aws_access_key()
-    aws_secret = util.config_reader.get_aws_access_key_secret()
-    aws_region = util.config_reader.get_aws_region()
-    efs_path = util.config_reader.get_cadre_efs_root_query_results_listener() + util.config_reader.get_cadre_efs_subpath_query_results_listener()
+s3_file_archive = util.config_reader.get_archive_s3_root()
+s3_tool_location = util.config_reader.get_tools_s3_root()
+aws_access_key_id = util.config_reader.get_aws_access_key()
+aws_secret = util.config_reader.get_aws_access_key_secret()
+aws_region = util.config_reader.get_aws_region()
+efs_path = util.config_reader.get_cadre_efs_root_query_results_listener() + util.config_reader.get_cadre_efs_subpath_query_results_listener()
 
 
 def create_python_dockerfile_and_upload_s3(tool_id, docker_template_json):
@@ -88,7 +76,7 @@ def archive_input_files(files, username):
             s3_archive_sub_path = username + '/' + filename
             s3_client.meta.client.upload_file(file_full_path, s3_file_archive, s3_archive_sub_path)
     except (Exception) as error:
-        traceback.print_tb(error.__traceback__)
+        logger.exception(error)
         logger.error("Error while archiving files to s3. Error is " + str(error))
 
 
@@ -125,7 +113,7 @@ def upload_tool_scripts_to_s3(files, tool_id, username):
                 logger.info(s3_tool_sub_path)
                 s3_client.meta.client.upload_file(file_full_path, s3_tool_location, s3_tool_sub_path)
     except (Exception) as error:
-        traceback.print_tb(error.__traceback__)
+        logger.exception(error)
         logger.error("Error while uploading files to s3 tool location. Error " + str(error))
 
 
@@ -151,7 +139,7 @@ def get_relative_paths_tool_scripts(files, username):
                 relative_paths.append(relative_file_path)
         return relative_paths
     except (Exception) as error:
-        traceback.print_tb(error.__traceback__)
+        logger.exception(error)
         logger.error("Error while getting relative paths. Error " + str(error))
 
 
@@ -199,8 +187,7 @@ def download_s3_dir(bucket, path, target):
                     assert_dir_exists(local_file_dir)
                     s3_client.meta.client.download_file(bucket, key['Key'], local_file_path)
     except (Exception) as error:
-        traceback.print_tb(error.__traceback__)
-        logger.error(error)
+        logger.exception(error)
         logger.info("Error while downloading files from s3 tool location to EFS. Error is " + str(error))
 
 
@@ -225,8 +212,7 @@ def get_file_checksum(file_path):
             md5_returned = hashlib.md5(data.encode('utf-8')).hexdigest()
             return md5_returned
     except (Exception) as error:
-            traceback.print_tb(error.__traceback__)
-            logger.error(error)
+            logger.exception(error)
             logger.error("Error while getting checksum for the file " + file_path + ". Error is " + str(error))
 
 

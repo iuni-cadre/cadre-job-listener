@@ -18,10 +18,11 @@ def get_cadre_config():
             config.read(config_path)
             return config
         else:
+
             logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
             raise Exception('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         raise Exception('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
 
 
@@ -31,7 +32,7 @@ def get_aws_access_key():
         access_key = config['AWS']['aws_access_key_id']
         return access_key
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -42,7 +43,7 @@ def get_aws_access_key_secret():
         access_key_secret = config['AWS']['aws_secret_access_key']
         return access_key_secret
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -64,7 +65,7 @@ def get_job_queue_url():
         queue_url = config['AWS']['job_queue']
         return queue_url
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -75,7 +76,7 @@ def get_package_queue_url():
         queue_url = config['AWS']['package_queue']
         return queue_url
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -86,7 +87,7 @@ def get_tool_queue_url():
         queue_url = config['AWS']['tool_queue']
         return queue_url
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -108,7 +109,7 @@ def get_archive_s3_root():
         s3_root = config['PACKAGES']['archive_s3_root']
         return s3_root
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -118,7 +119,7 @@ def get_wos_db_hostname():
         db_host_name = config['WOS_DATABASE_INFO']['database-host']
         return db_host_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -129,7 +130,7 @@ def get_wos_db_port():
         db_port = config['WOS_DATABASE_INFO']['database-port']
         return db_port
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -140,7 +141,7 @@ def get_wos_db_name():
         db_name = config['WOS_DATABASE_INFO']['database-name']
         return db_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -151,7 +152,7 @@ def get_wos_db_username():
         db_username = config['WOS_DATABASE_INFO']['database-username']
         return db_username
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -162,7 +163,7 @@ def get_wos_db_pwd():
         db_pwd = config['WOS_DATABASE_INFO']['database-password']
         return db_pwd
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -184,7 +185,7 @@ def get_mag_db_port():
         db_port = config['MAG_DATABASE_INFO']['database-port']
         return db_port
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -195,7 +196,7 @@ def get_mag_db_name():
         db_name = config['MAG_DATABASE_INFO']['database-name']
         return db_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -206,7 +207,7 @@ def get_mag_db_username():
         db_username = config['MAG_DATABASE_INFO']['database-username']
         return db_username
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -217,7 +218,7 @@ def get_mag_db_pwd():
         db_pwd = config['MAG_DATABASE_INFO']['database-password']
         return db_pwd
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -228,7 +229,7 @@ def get_mag_graph_db_url():
         db_url = config['MAG_GRAPH_DB_INFO']['database-url']
         return db_url
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -239,7 +240,7 @@ def get_mag_graph_db_username():
         db_username = config['MAG_GRAPH_DB_INFO']['database-username']
         return db_username
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -250,7 +251,7 @@ def get_mag_graph_db_pwd():
         db_pwd = config['MAG_GRAPH_DB_INFO']['database-password']
         return db_pwd
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -261,7 +262,7 @@ def get_mag_graph_db_import_dir():
         import_dir = config['MAG_GRAPH_DB_INFO']['import-dir']
         return import_dir
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -272,7 +273,7 @@ def get_wos_graph_db_url():
         db_url = config['WOS_GRAPH_DB_INFO']['database-url']
         return db_url
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -283,7 +284,7 @@ def get_wos_graph_db_username():
         db_username = config['WOS_GRAPH_DB_INFO']['database-username']
         return db_username
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -294,7 +295,7 @@ def get_wos_graph_db_pwd():
         db_pwd = config['WOS_GRAPH_DB_INFO']['database-password']
         return db_pwd
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -305,7 +306,7 @@ def get_wos_graph_db_import_dir():
         import_dir = config['WOS_GRAPH_DB_INFO']['import-dir']
         return import_dir
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -316,7 +317,7 @@ def get_cadre_db_hostname():
         db_host_name = config['CADRE_META_DATABASE_INFO']['database-host']
         return db_host_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -327,7 +328,7 @@ def get_cadre_db_port():
         db_port = config['CADRE_META_DATABASE_INFO']['database-port']
         return db_port
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -338,7 +339,7 @@ def get_cadre_db_name():
         db_name = config['CADRE_META_DATABASE_INFO']['database-name']
         return db_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -349,7 +350,7 @@ def get_cadre_db_username():
         db_username = config['CADRE_META_DATABASE_INFO']['database-username']
         return db_username
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -360,7 +361,7 @@ def get_cadre_db_pwd():
         db_pwd = config['CADRE_META_DATABASE_INFO']['database-password']
         return db_pwd
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -371,7 +372,7 @@ def get_cadre_efs_root_query_results_listener():
         efs_root = config['EFS']['efs-root-query-results-listener']
         return efs_root
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -382,7 +383,7 @@ def get_cadre_efs_subpath_query_results_listener():
         efs_subpath = config['EFS']['efs-subpath-query-results-listener']
         return efs_subpath
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -393,7 +394,7 @@ def get_cadre_efs_root_neo4j_mag_output_listener():
         efs_root_datasets = config['EFS']['efs-root-mag-neo4j-import-listener']
         return efs_root_datasets
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -404,7 +405,7 @@ def get_cadre_efs_root_neo4j_wos_output_listener():
         efs_root_datasets = config['EFS']['efs-root-wos-neo4j-import-listener']
         return efs_root_datasets
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -414,7 +415,7 @@ def get_kebenetes_namespace():
         kub_namespace = config['PACKAGES']['kub_namespace']
         return kub_namespace
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -425,7 +426,7 @@ def get_cadre_pv_name():
         cadre_pv_name = config['PACKAGES']['cadre-pv-name']
         return cadre_pv_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -436,7 +437,7 @@ def get_cadre_pvc_name():
         cadre_pvc_name = config['PACKAGES']['cadre-pvc-name']
         return cadre_pvc_name
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -458,7 +459,7 @@ def get_cadre_dockerhub_pwd():
         dockerhub_pwd = config['PACKAGES']['docker-hub-pwd']
         return dockerhub_pwd
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -469,7 +470,7 @@ def get_cadre_dockerhub_repo():
         dockerhub_repo = config['PACKAGES']['docker-repo']
         return dockerhub_repo
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -480,7 +481,7 @@ def get_kub_config_location():
         kub_config_location = config['PACKAGES']['kub-config-file']
         return kub_config_location
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')
 
@@ -491,6 +492,6 @@ def get_kub_docker_secret():
         kub_docker_secret = config['PACKAGES']['kub-docker-secret']
         return kub_docker_secret
     except Exception as e:
-        traceback.print_tb(e.__traceback__)
+        logger.exception(e)
         logger.error('Unable to find cadre.config file. Make sure you have cadre.config inside conf directory !')
         raise Exception('Unable to find cadre.config file !')

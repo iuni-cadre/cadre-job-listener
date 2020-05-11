@@ -116,6 +116,7 @@ def poll_queue():
                         command = environment
 
                     # upload tool scripts
+                    logger.info(tool_id)
                     util.tool_util.upload_tool_scripts_to_s3(file_paths, tool_id, username)
                     logger.info('Tool scripts uploaded to S3')
                     copy_files = []
@@ -184,8 +185,7 @@ def poll_queue():
                     meta_db_cursor.execute(insert_q, data)
                     meta_connection.commit()
                 except (Exception, psycopg2.Error) as error:
-                    traceback.print_tb(error.__traceback__)
-                    logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
+                    logger.exception(error)
                     update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
