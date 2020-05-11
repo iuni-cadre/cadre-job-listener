@@ -19,7 +19,25 @@ import util.config_reader
 import util.tool_util
 from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver, wos_driver
 
-logger = None
+log_conf = conf + '/logging-job-conf.json'
+with open(log_conf, 'r') as logging_configuration_file:
+    config_dict = json.load(logging_configuration_file)
+
+logging.config.dictConfig(config_dict)
+
+# Log that the logger was configured
+logger = logging.getLogger(__name__)
+logger.info('Completed configuring logger()!')
+
+
+logger = logging.getLogger('cadre_job_listener')
+# Create SQS client
+sqs_client = boto3.client('sqs',
+                    aws_access_key_id=util.config_reader.get_aws_access_key(),
+                    aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
+                    region_name=util.config_reader.get_aws_region())
+
+queue_url = util.config_reader.get_job_queue_url()
 
 # If applicable, delete the existing log file to generate a fresh log file during each execution
 # logfile_path = cadre + "/cadre_job_listener.log"
@@ -459,30 +477,6 @@ def get_file_name(job_id, job_name):
 
 
 def poll_queue():
-    util.db_util.initialize()
-    util.tool_util.initialize()
-
-    log_conf = conf + '/logging-job-conf.json'
-    with open(log_conf, 'r') as logging_configuration_file:
-        config_dict = json.load(logging_configuration_file)
-
-    logging.config.dictConfig(config_dict)
-
-    # Log that the logger was configured
-    logger = logging.getLogger(__name__)
-    logger.info('Completed configuring logger()!')
-
-
-    logger = logging.getLogger('cadre_job_listener')
-
-    # Create SQS client
-    sqs_client = boto3.client('sqs',
-                        aws_access_key_id=util.config_reader.get_aws_access_key(),
-                        aws_secret_access_key=util.config_reader.get_aws_access_key_secret(),
-                        region_name=util.config_reader.get_aws_region())
-
-    queue_url = util.config_reader.get_job_queue_url()
-
     while True:
         # Receive message from SQS queue
         response = sqs_client.receive_message(
