@@ -214,6 +214,68 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
     return interface_query
 
 
+def generate_wos_2019_query(output_filter_string, query_json, network_enabled):
+    interface_query = 'SELECT ' + output_filter_string + ' FROM wos19.interface_tabl19 WHERE '
+    for item in query_json:
+        if 'value' in item:
+            value = item['value']
+        if 'operation' in item:
+            operand = item['operation']
+        if 'field' in item:
+            field = item['field']
+            if field == 'year':
+                if value is not None:
+                    value = value.strip()
+                    if len(value) == 4 and value.isdigit():
+                        value = "'{}'".format(value)
+                        if network_enabled:
+                            value = value.replace("'", "\\'")
+                        logger.info("Year: " + value)
+                        interface_query += ' year={} '.format(value) + operand
+                        # years.append(value)
+                        # year_operands.append(operand)
+            elif field == 'journal_name':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = value.replace("'", "\\'")
+                    logger.info("Journal Name: " + value)
+                    interface_query += ' journal_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    # journals.append(value)
+                    # journal_operands.append(operand)
+            elif field == 'authors_full_name':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = value.replace("'", "\\'")
+                    logger.info("authors_full_name: " + value)
+                    interface_query += ' authors_full_name iLIKE {} '.format(value) + operand
+                    # authors.append(value)
+            elif field == 'title':
+                if value is not None:
+                    value = value.strip()
+                    value = value.replace(' ', '%')
+                    value = '%' + value + '%'
+                    value = "'{}'".format(value)
+                    if network_enabled:
+                        value = value.replace("'", "\\'")
+                    logger.info("Title: " + value)
+                    interface_query += ' title_tsv @@ to_tsquery ({}) '.format(value) + operand
+                    # authors.append(value)
+
+    if network_enabled:
+        interface_query = interface_query + 'LIMIT' + ' ' + '100000'
+    else:
+        interface_query = interface_query + 'LIMIT' + ' ' + '100000'
+    print("Query: " + interface_query)
+    return interface_query
+
 def generate_mag_query(output_filter_string, query_json, network_enabled):
     logger.info(output_filter_string)
     logger.info(query_json)
@@ -681,6 +743,121 @@ def poll_queue():
                             else:
                                 network_enabled = False
                                 interface_query = generate_wos_query(output_filter_string, filters, network_enabled)
+                                logger.info(interface_query)
+                                output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
+                                with open(csv_path, 'w') as f:
+                                    wos_cursor.copy_expert(output_query, f)
+                                target_csv_checksum = util.tool_util.get_file_checksum(csv_path)
+
+                                csv_file_insert_data = (job_id, csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+
+                        elif dataset == 'wos_2019':
+                            logger.info('User selects WOS 2019 dataset !!!')
+                            if network_query_type == 'references':
+                                logger.info(network_query_type)
+                                network_enabled = True
+                                if 'id' not in output_filters_single:
+                                    output_filters_single.append('id')
+                                # generate output filter string for neo4j
+                                output_filter_string = generate_output_string_neo4j_wos(output_filters_single)
+                                logger.info(output_filter_string)
+                                interface_query = generate_wos_2019_query(output_filter_string, filters, network_enabled)
+                                logger.info(interface_query)
+                                degree_0_field_names = generate_csv_fields_neo4j_wos(output_filters_single)
+                                if degree == 1:
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    edge_query = get_edge_list_degree_1_wos(csv_name, edge_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
+                                    degree_0_results = wos_driver_session.run(degree_0_q)
+                                    edge_result = wos_driver_session.run(edge_query)
+                                    node_result = wos_driver_session.run(node_query)
+                                    entire_result_degree_0 = []  # Will contain all the items
+                                    edge_result_degree_1 = []  # Will contain all the items
+                                    node_result_degree_1 = []  # Will contain all the items
+                                    for record in degree_0_results:
+                                        entire_result_degree_0.append(record)
+                                    for record in edge_result:
+                                        edge_result_degree_1.append(record)
+                                    for record in node_result:
+                                        node_result_degree_1.append(record)
+                                elif degree == 2:
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    logger.info(degree_0_q)
+                                    edge_query = get_edge_list_degree_2_wos(csv_name, edge_path)
+                                    logger.info(edge_query)
+                                    node_query = get_node_list_wos(edge_path, node_path)
+                                    logger.info(node_query)
+                                    degree_0_results = wos_driver_session.run(degree_0_q)
+                                    edge_result = wos_driver_session.run(edge_query)
+                                    node_result = wos_driver_session.run(node_query)
+                                    entire_result_degree_0 = []  # Will contain all the items
+                                    edge_result_degree_1 = []  # Will contain all the items
+                                    node_result_degree_1 = []  # Will contain all the items
+                                    for record in degree_0_results:
+                                        entire_result_degree_0.append(record)
+                                    for record in edge_result:
+                                        edge_result_degree_1.append(record)
+                                    for record in node_result:
+                                        node_result_degree_1.append(record)
+                                else:
+                                    logger.info(
+                                        "Degree 1 and 2 are supported. If degree is more than that, it will use 2 as default. ")
+                                    degree_0_q = degree_0_query(interface_query, csv_name, degree_0_field_names)
+                                    edge_query = get_edge_list_degree_2_wos(csv_name, edge_path)
+                                    node_query = get_node_list_wos(edge_path, node_path)
+                                    degree_0_results = wos_driver_session.run(degree_0_q)
+                                    edge_result = wos_driver_session.run(edge_query)
+                                    node_result = wos_driver_session.run(node_query)
+
+                                    entire_result_degree_0 = []  # Will contain all the items
+                                    edge_result_degree_1 = []  # Will contain all the items
+                                    node_result_degree_1 = []  # Will contain all the items
+
+                                    for record in degree_0_results:
+                                        entire_result_degree_0.append(record)
+                                    for record in edge_result:
+                                        edge_result_degree_1.append(record)
+                                    for record in node_result:
+                                        node_result_degree_1.append(record)
+                                # copy files to correct EFS location
+                                source_csv_path = neo4j_wos_import_efs_dir + '/' + csv_name
+                                target_csv_path = user_query_result_dir + '/' + csv_name
+                                logger.info(source_csv_path)
+                                logger.info(target_csv_path)
+                                copyfile(source_csv_path, target_csv_path)
+
+                                source_node_path = neo4j_wos_import_efs_dir + '/' + node_path
+                                target_node_path = user_query_result_dir + '/' + node_path
+                                logger.info(source_node_path)
+                                logger.info(target_node_path)
+                                copyfile(source_node_path, target_node_path)
+
+                                source_edge_path = neo4j_wos_import_efs_dir + '/' + edge_path
+                                target_edge_path = user_query_result_dir + '/' + edge_path
+                                logger.info(source_edge_path)
+                                logger.info(target_edge_path)
+                                copyfile(source_edge_path, target_edge_path)
+
+                                # get checksums and update the db
+                                target_csv_checksum = util.tool_util.get_file_checksum(target_csv_path)
+                                target_edge_file_checksum = util.tool_util.get_file_checksum(target_edge_path)
+                                target_node_file_checksum = util.tool_util.get_file_checksum(target_node_path)
+
+                                csv_file_insert_data = (job_id, target_csv_path, target_csv_checksum, 'WOS', 'TRUE', user_id)
+                                edge_file_insert_data = (job_id, target_edge_path, target_edge_file_checksum, 'WOS', 'TRUE', user_id)
+                                node_file_insert_data = (job_id, target_node_path, target_node_file_checksum, 'WOS', 'TRUE', user_id)
+                                # Execute the SQL Query
+                                meta_db_cursor.execute(file_insert_statement, csv_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, edge_file_insert_data)
+                                meta_connection.commit()
+                                meta_db_cursor.execute(file_insert_statement, node_file_insert_data)
+                                meta_connection.commit()
+                            else:
+                                network_enabled = False
+                                interface_query = generate_wos_2019_query(output_filter_string, filters, network_enabled)
                                 logger.info(interface_query)
                                 output_query = "COPY ({}) TO STDOUT WITH CSV HEADER".format(interface_query)
                                 with open(csv_path, 'w') as f:
