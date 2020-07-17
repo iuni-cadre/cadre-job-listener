@@ -215,7 +215,7 @@ def generate_wos_query(output_filter_string, query_json, network_enabled):
 
 
 def generate_wos_2019_query(output_filter_string, query_json, network_enabled):
-    interface_query = 'SELECT ' + output_filter_string + ' FROM wos19.interface_tabl19 WHERE '
+    interface_query = 'SELECT ' + output_filter_string + ' FROM wos19.interface_table19 WHERE '
     for item in query_json:
         if 'value' in item:
             value = item['value']
