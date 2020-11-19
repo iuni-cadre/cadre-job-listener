@@ -17,7 +17,7 @@ sys.path.append(cadre)
 
 import util.config_reader
 import util.tool_util
-from util.db_util import wos_connection_pool, mag_connection_pool, cadre_meta_connection_pool, mag_driver, wos_driver
+from util.db_util import cadre_meta_connection_pool
 
 log_conf = conf + '/logging-job-conf.json'
 with open(log_conf, 'r') as logging_configuration_file:
