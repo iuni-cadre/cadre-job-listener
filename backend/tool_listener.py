@@ -110,7 +110,7 @@ def poll_queue():
                 requirements_script = query_json['requirements_path']
                 environment = query_json['environment']
                 try:
-                    if 'python' is environment:
+                    if 'python' == environment:
                         command = 'python'
                     else:
                         command = environment
