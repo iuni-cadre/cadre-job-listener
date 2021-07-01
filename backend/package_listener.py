@@ -15,7 +15,7 @@ import boto3
 import psycopg2 as psycopg2
 import docker
 import time
-from kubernetes import client, config, utils
+from kubernetes import client, config, utils, watch
 from kubernetes.stream import stream
 import kubernetes.client
 from kubernetes.client.rest import ApiException
@@ -93,6 +93,19 @@ def kube_delete_empty_pods(namespace, phase):
             logger.error("Exception when calling CoreV1Api->delete_namespaced_pod: %s\n" % e)
 
     return
+
+
+def kube_get_pod_status(namespace, podname):
+    try:
+        w = watch.Watch()
+        for event in w.stream(func=api_instance.list_namespaced_pod,
+                              namespace=namespace,
+                              timeout_seconds=300):
+            if event["object"].metadata.name == podname and event["object"].status.phase == "Succeeded" or event["object"].status.phase == "Failed":
+                w.stop()
+                return
+    except ApiException as e:
+        logging.error("Exception when calling CoreV1Api->list_namespaced_pod: %s\n" % e)
 
 
 def kube_create_job_object(name,
@@ -234,7 +247,7 @@ def poll_queue():
                         package_name = package_info[0]
                         logger.info(package_name)
 
-                    update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    update_statement = "UPDATE user_job SET job_status = 'RUNNING', modified_on = clock_timestamp() WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
                     meta_connection.commit()
@@ -326,7 +339,7 @@ def poll_queue():
                         except ApiException as e:
                             logger.exception(e)
                             logger.error("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
-                            update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                            update_statement = "UPDATE user_job SET job_status = 'FAILED', modified_on = clock_timestamp() WHERE job_id = (%s)"
                             # Execute the SQL Query
                             meta_db_cursor.execute(update_statement, (job_id,))
                             meta_connection.commit()
@@ -344,8 +357,9 @@ def poll_queue():
                     #     meta_db_cursor.execute(update_statement, (job_id,))
                     #     meta_connection.commit()
 
-                    print("Job ID: " + job_id)
-                    update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = CURRENT_TIMESTAMP WHERE job_id = (%s)"
+                    kube_get_pod_status(jhub_namespace, job_id)
+                    logger.info("job completes")
+                    update_statement = "UPDATE user_job SET job_status = 'COMPLETED', modified_on = clock_timestamp() WHERE job_id = (%s)"
                     # Execute the SQL Query
                     meta_db_cursor.execute(update_statement, (job_id,))
                     meta_connection.commit()
@@ -356,7 +370,7 @@ def poll_queue():
                     #                                                       body=body)
                     #     logger.info(api_response)
                 except (Exception, psycopg2.Error) as error:
-                    logger.exception(e)
+                    logger.exception(error)
                     logger.error('Error while connecting to PostgreSQL. Error is ' + str(error))
                 finally:
                     # Closing database connection.
