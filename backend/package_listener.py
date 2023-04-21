@@ -120,6 +120,7 @@ def kube_create_job_object(name,
                            volume_full_path,
                            volume_subpath):
     logger.info(image_name)
+    logger.info(image_name)
     """
     Create a k8 Job Object
     Minimum definition of a job object:
@@ -178,6 +179,7 @@ def kube_create_job_object(name,
     claim_volume_source = client.V1PersistentVolumeClaimVolumeSource(claim_name=util.config_reader.get_cadre_pvc_name())
     volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name=util.config_reader.get_cadre_pv_name(), sub_path=volume_subpath)]
 
+    logger.info(shared_volume_in_pod)
     image_with_tag = image_name + ":" + container_tag
     container = client.V1Container(name=container_tag,
                                    image=image_with_tag,
